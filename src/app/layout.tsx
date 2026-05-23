@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aura | Intelligent ATS",
-  description: "AI-powered Applicant Tracking System focused on human trajectory.",
+  title: "Apex | Intelligent ATS",
+  description: "AI-powered Applicant Tracking System that finds peak potential in every candidate.",
 };
 
 export default function RootLayout({

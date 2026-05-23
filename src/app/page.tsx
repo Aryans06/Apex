@@ -30,7 +30,7 @@ export default function Home() {
             <Sparkles className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Aura ATS</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Apex</h1>
             <p className="text-sm text-muted-foreground">Intelligence layer active</p>
           </div>
         </div>
