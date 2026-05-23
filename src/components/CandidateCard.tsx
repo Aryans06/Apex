@@ -3,6 +3,7 @@
 import { Candidate } from "@/lib/data";
 import { ChevronRight, ExternalLink, Sparkles, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -64,7 +65,12 @@ export function CandidateCard({ candidate, onOpenProofOfWork }: CandidateCardPro
         )}
 
         <div className="mt-4 border-t border-border pt-4">
-          <h4 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wider">Experience Highlights</h4>
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Experience Highlights</h4>
+            <Link href={`/dashboard/candidate/${candidate.id}`} className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 transition-colors font-medium">
+              View Full Profile <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
           <div className="flex flex-col gap-3">
             {candidate.experience.map((exp, idx) => (
               <div key={idx} className="flex flex-col gap-1">

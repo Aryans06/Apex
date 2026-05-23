@@ -107,5 +107,64 @@ export const mockCandidates: Candidate[] = [
       github: "github.com/schen",
     },
     isProcessed: false
+  },
+  {
+    id: "c_003",
+    name: "David Park",
+    role: "Frontend Architect",
+    summary: "Pixel-perfect frontend engineer focusing on accessibility and design systems.",
+    skills: ["TypeScript", "React", "Next.js", "Tailwind CSS", "Figma"],
+    experience: [
+      {
+        role: "Senior Frontend Engineer",
+        company: "DesignCo",
+        duration: "2020 - Present",
+        description: "Leading the transition to a unified design system.",
+        bullets: [
+          "Built a component library used by 50+ engineers.",
+          "Reduced bundle size by 30% through dynamic imports.",
+          "Mentored junior engineers on accessibility best practices."
+        ]
+      }
+    ],
+    education: {
+      degree: "B.A. Graphic Design",
+      school: "Arts Institute",
+      year: "2015"
+    },
+    links: {
+      github: "github.com/dpark",
+      portfolio: "davidpark.design"
+    },
+    isProcessed: false
+  },
+  {
+    id: "c_004",
+    name: "Sarah Jenkins",
+    role: "Fullstack Developer",
+    summary: "Product-minded engineer who loves taking ideas from zero to one.",
+    skills: ["Python", "Django", "Vue.js", "Docker", "AWS"],
+    experience: [
+      {
+        role: "Founding Engineer",
+        company: "HealthTech Startup",
+        duration: "2021 - Present",
+        description: "First technical hire, built the MVP from scratch.",
+        bullets: [
+          "Architected HIPAA-compliant backend using Django and AWS.",
+          "Built real-time chat feature using WebSockets.",
+          "Set up CI/CD pipelines using GitHub Actions."
+        ]
+      }
+    ],
+    education: {
+      degree: "Bootcamp Graduate",
+      school: "CodeCamp",
+      year: "2021"
+    },
+    links: {
+      github: "github.com/sjenkins",
+    },
+    isProcessed: false
   }
 ];
