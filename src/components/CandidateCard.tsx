@@ -25,16 +25,22 @@ export function CandidateCard({ candidate, onOpenProofOfWork }: CandidateCardPro
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-xl font-bold flex items-center gap-2">
+            <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
               {candidate.name}
               {isHiddenGem && (
-                <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2 py-1 rounded-md border border-primary/30">
-                  <Sparkles className="w-3 h-3" />
-                  Hidden Gem
-                </span>
+                <>
+                  <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2 py-1 rounded-md border border-primary/30">
+                    <Sparkles className="w-3 h-3" />
+                    Hidden Gem
+                  </span>
+                  <span className="flex items-center gap-2 text-xs font-medium ml-2 px-3 py-1 rounded-full bg-secondary border border-border">
+                    <span className="text-muted-foreground line-through">Traditional ATS Rank: #47</span>
+                    <span className="text-primary font-bold">Apex Rank: #1</span>
+                  </span>
+                </>
               )}
             </h3>
-            <p className="text-muted-foreground">{candidate.role}</p>
+            <p className="text-muted-foreground mt-1">{candidate.role}</p>
           </div>
           <div className="flex gap-2">
             {candidate.skills.slice(0, 3).map(skill => (
