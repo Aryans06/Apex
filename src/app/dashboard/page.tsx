@@ -1,6 +1,6 @@
 "use client";
 
-import { mockCandidates } from "@/lib/data";
+import { mockCandidates, Candidate } from "@/lib/data";
 import { Sparkles, Activity, Users, Search, Zap, Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { CandidateCard } from "@/components/CandidateCard";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
@@ -14,29 +14,58 @@ export default function Dashboard() {
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
   const [selectedClaim, setSelectedClaim] = useState("");
   const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
+  const [resumeText, setResumeText] = useState("");
+  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
 
   const handleOpenProofOfWork = (candidateId: string, claim: string) => {
     setSelectedClaim(claim);
     setModalOpen(true);
   };
 
-  const handleFakeUpload = () => {
+  const handleUpload = async () => {
+    if (!resumeText.trim()) {
+      alert("Please paste a resume text for the demo.");
+      return;
+    }
+
     setUploadState("uploading");
-    setTimeout(() => {
+    
+    // Quick visual transition
+    setTimeout(async () => {
       setUploadState("analyzing");
-      setTimeout(() => {
+      
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeText })
+        });
+        
+        if (!res.ok) throw new Error("Analysis failed");
+        
+        const newCandidate = await res.json();
+        
+        // Add to our local state
+        setCandidates(prev => [newCandidate, ...prev]);
         setUploadState("done");
+        
         setTimeout(() => {
           setUploadOpen(false);
           setUploadState("idle");
-        }, 1500);
-      }, 3000); // 3 sec of "Gemini analyzing"
-    }, 1500);
+          setResumeText("");
+        }, 2000);
+        
+      } catch (error) {
+        console.error("Upload error:", error);
+        alert("Failed to analyze resume. Make sure GEMINI_API_KEY is set.");
+        setUploadState("idle");
+      }
+    }, 800);
   };
 
   const displayedCandidates = showHiddenGemsOnly 
-    ? mockCandidates.filter(c => c.id === "c_001") // Mock filtering for the demo
-    : mockCandidates;
+    ? candidates.filter(c => c.id === "c_001" || (c.hiddenGemScore && c.hiddenGemScore > 80)) 
+    : candidates;
 
   return (
     <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto relative">
@@ -62,16 +91,20 @@ export default function Dashboard() {
                     <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-6">
                       <Upload className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Upload Resume</h3>
-                    <p className="text-sm text-muted-foreground mb-8">PDF, DOCX, or plain text</p>
-                    <div 
-                      onClick={handleFakeUpload}
-                      className="w-full border-2 border-dashed border-border hover:border-primary/50 bg-secondary/30 hover:bg-secondary/50 transition-colors rounded-xl p-8 cursor-pointer flex flex-col items-center justify-center"
-                    >
-                      <FileText className="w-8 h-8 text-primary/50 mb-3" />
-                      <span className="text-sm font-medium">Click to browse or drag & drop</span>
+                    <h3 className="text-xl font-bold mb-2">Analyze Candidate</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Paste resume text below to let Apex analyze their trajectory.</p>
+                    
+                    <textarea 
+                      value={resumeText}
+                      onChange={(e) => setResumeText(e.target.value)}
+                      placeholder="Paste resume text here..."
+                      className="w-full h-32 bg-secondary/50 border border-border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none mb-4"
+                    />
+                    
+                    <div className="flex gap-3 w-full">
+                      <button onClick={() => setUploadOpen(false)} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">Cancel</button>
+                      <button onClick={handleUpload} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">Analyze</button>
                     </div>
-                    <button onClick={() => setUploadOpen(false)} className="mt-6 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
                   </>
                 )}
                 

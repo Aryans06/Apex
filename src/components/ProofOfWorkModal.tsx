@@ -15,31 +15,48 @@ export function ProofOfWorkModal({ isOpen, onClose, claim }: ProofOfWorkModalPro
   const [questions, setQuestions] = useState<any[]>([]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && claim) {
       setIsGenerating(true);
-      // Simulate API call to Gemini
-      const timer = setTimeout(() => {
-        setQuestions([
-          {
-            icon: <Database className="w-5 h-5 text-blue-400" />,
-            q: "You mentioned optimizing Postgres queries by 40%. Can you describe a specific query that was bottlenecking the system, and how you used `EXPLAIN ANALYZE` to identify the issue?",
-            intent: "Verifies hands-on experience with query profiling, beyond just adding indexes blindly."
-          },
-          {
-            icon: <Target className="w-5 h-5 text-emerald-400" />,
-            q: "When implementing partial indexes, what trade-offs did you consider regarding write performance, and how did you ensure the planner actually used your index?",
-            intent: "Checks understanding of database internals and planner behavior."
-          },
-          {
-            icon: <ShieldCheck className="w-5 h-5 text-purple-400" />,
-            q: "Connection pooling was part of your solution. Did you use an external pooler like PgBouncer or an application-level pool? How did you size the pool?",
-            intent: "Validates architectural decision-making and production readiness."
-          }
-        ]);
-        setIsGenerating(false);
-      }, 2500); // Fake delay for the "Wow" factor
+      
+      const fetchQuestions = async () => {
+        try {
+          const res = await fetch("/api/generate-assessment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ claim })
+          });
+          
+          if (!res.ok) throw new Error("Failed to fetch");
+          
+          const data = await res.json();
+          
+          // Map icons dynamically based on index for variety
+          const icons = [
+            <Database key="1" className="w-5 h-5 text-blue-400" />,
+            <Target key="2" className="w-5 h-5 text-emerald-400" />,
+            <ShieldCheck key="3" className="w-5 h-5 text-purple-400" />
+          ];
+          
+          const formattedQuestions = data.questions.map((q: any, i: number) => ({
+            ...q,
+            icon: icons[i % icons.length]
+          }));
+          
+          setQuestions(formattedQuestions);
+        } catch (error) {
+          console.error("Error generating assessment:", error);
+          // Fallback if API fails
+          setQuestions([{
+            icon: <Target className="w-5 h-5 text-red-400" />,
+            q: "Failed to connect to the Gemini API. Please check your API key.",
+            intent: "System Error"
+          }]);
+        } finally {
+          setIsGenerating(false);
+        }
+      };
 
-      return () => clearTimeout(timer);
+      fetchQuestions();
     } else {
       setQuestions([]);
     }
