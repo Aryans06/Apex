@@ -22,26 +22,26 @@ export interface Candidate {
     github: string;
     portfolio?: string;
   };
-  // Hidden gem fields
+  location?: string;
   isProcessed: boolean;
-  hiddenGemScore?: number; // 0-100
+  hiddenGemScore?: number;
   trajectoryNotes?: string;
-  adjacencyScore?: number; // 0-100
+  adjacencyScore?: number;
 }
 
 export const mockCandidates: Candidate[] = [
   {
     id: "c_001",
-    name: "Alex Rivera",
+    name: "Priya Sharma",
     role: "Senior Backend Engineer",
-    summary: "Self-taught developer with a passion for high-performance distributed systems. I specialize in building highly scalable architectures from scratch.",
+    summary: "Self-taught developer from Nagpur with a passion for high-performance distributed systems. Built scalable fintech infrastructure from scratch.",
     skills: ["Rust", "Go", "PostgreSQL", "Kafka", "Docker", "Kubernetes", "Redis"],
     experience: [
       {
         role: "Lead Systems Engineer",
-        company: "DataFlow Inc. (Startup)",
+        company: "PayPulse (Startup)",
         duration: "2022 - Present",
-        description: "Promoted from Junior to Lead in 18 months. Redesigned the entire data ingestion pipeline.",
+        description: "Promoted from Junior to Lead in 18 months. Redesigned the entire payments ingestion pipeline.",
         bullets: [
           "Architected a distributed event-streaming platform using Kafka and Rust, handling 50k events/sec.",
           "Optimized PostgreSQL queries by 40%, implementing partial indexes and connection pooling.",
@@ -60,26 +60,28 @@ export const mockCandidates: Candidate[] = [
       }
     ],
     education: {
-      degree: "High School Diploma",
-      school: "Central High",
+      degree: "B.C.A",
+      school: "Nagpur University",
       year: "2018"
     },
-    links: {
-      github: "github.com/arivera",
-    },
-    isProcessed: false
+    links: { github: "github.com/priyasharma" },
+    location: "Bengaluru, India",
+    isProcessed: true,
+    hiddenGemScore: 94,
+    adjacencyScore: 88,
+    trajectoryNotes: "Exceptional growth velocity. Transitioned from standard Node.js to architecting high-throughput distributed systems in Rust in just 18 months. High skill adjacency for Senior Platform roles."
   },
   {
     id: "c_002",
-    name: "Samantha Chen",
-    role: "Software Engineer",
+    name: "Rahul Mehta",
+    role: "Software Engineer II",
     summary: "Experienced software engineer with a background in enterprise web applications.",
     skills: ["Java", "Spring Boot", "React", "SQL", "AWS"],
     experience: [
       {
         role: "Software Engineer II",
-        company: "MegaCorp Enterprise",
-        duration: "2019 - Present",
+        company: "Infosys",
+        duration: "2021 - Present",
         description: "Part of the core team maintaining the internal HR portal.",
         bullets: [
           "Developed new REST APIs using Java and Spring Boot for the employee directory.",
@@ -88,9 +90,9 @@ export const mockCandidates: Candidate[] = [
         ]
       },
       {
-        role: "Software Engineer I",
-        company: "MegaCorp Enterprise",
-        duration: "2016 - 2019",
+        role: "Systems Engineer",
+        company: "TCS",
+        duration: "2019 - 2021",
         description: "Started as a new grad, working on bug fixes and minor features.",
         bullets: [
           "Fixed bugs in legacy Java applications.",
@@ -99,26 +101,28 @@ export const mockCandidates: Candidate[] = [
       }
     ],
     education: {
-      degree: "B.S. Computer Science",
-      school: "State University",
-      year: "2016"
+      degree: "B.Tech Computer Science",
+      school: "IIT Bombay",
+      year: "2019"
     },
-    links: {
-      github: "github.com/schen",
-    },
-    isProcessed: false
+    links: { github: "github.com/rahulm" },
+    location: "Mumbai, India",
+    isProcessed: true,
+    hiddenGemScore: 40,
+    adjacencyScore: 50,
+    trajectoryNotes: "Standard trajectory. Good pedigree but slower progression and standard enterprise tech stack."
   },
   {
     id: "c_003",
-    name: "David Park",
+    name: "Anjali Deshmukh",
     role: "Frontend Architect",
     summary: "Pixel-perfect frontend engineer focusing on accessibility and design systems.",
     skills: ["TypeScript", "React", "Next.js", "Tailwind CSS", "Figma"],
     experience: [
       {
         role: "Senior Frontend Engineer",
-        company: "DesignCo",
-        duration: "2020 - Present",
+        company: "CRED",
+        duration: "2022 - Present",
         description: "Leading the transition to a unified design system.",
         bullets: [
           "Built a component library used by 50+ engineers.",
@@ -128,19 +132,20 @@ export const mockCandidates: Candidate[] = [
       }
     ],
     education: {
-      degree: "B.A. Graphic Design",
-      school: "Arts Institute",
-      year: "2015"
+      degree: "Bootcamp Graduate",
+      school: "Masai School",
+      year: "2020"
     },
-    links: {
-      github: "github.com/dpark",
-      portfolio: "davidpark.design"
-    },
-    isProcessed: false
+    links: { github: "github.com/anjalid", portfolio: "anjali.design" },
+    location: "Pune, India",
+    isProcessed: true,
+    hiddenGemScore: 88,
+    adjacencyScore: 75,
+    trajectoryNotes: "Strong bootcamp grad trajectory. Reached Senior Frontend Engineer at a top-tier startup in 2 years."
   },
   {
     id: "c_004",
-    name: "Sarah Jenkins",
+    name: "Vikram Singh",
     role: "Fullstack Developer",
     summary: "Product-minded engineer who loves taking ideas from zero to one.",
     skills: ["Python", "Django", "Vue.js", "Docker", "AWS"],
@@ -158,13 +163,15 @@ export const mockCandidates: Candidate[] = [
       }
     ],
     education: {
-      degree: "Bootcamp Graduate",
-      school: "CodeCamp",
-      year: "2021"
+      degree: "B.Tech IT",
+      school: "NIT Trichy",
+      year: "2020"
     },
-    links: {
-      github: "github.com/sjenkins",
-    },
-    isProcessed: false
+    links: { github: "github.com/vikrams" },
+    location: "Hyderabad, India",
+    isProcessed: true,
+    hiddenGemScore: 65,
+    adjacencyScore: 80,
+    trajectoryNotes: "Solid founding engineer experience taking a product from 0 to 1."
   }
 ];

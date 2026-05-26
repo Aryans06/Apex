@@ -4,6 +4,8 @@ import { Sparkles, ArrowRight, Zap, Shield, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-context";
+import { t } from "@/lib/i18n";
 
 const typewriterWords = [
   "Skill Adjacency",
@@ -57,44 +59,61 @@ const fadeUp = {
   }),
 };
 
-const features = [
-  {
-    icon: <Sparkles className="w-6 h-6" />,
-    title: "Hidden Gem Detection",
-    description:
-      "Surfaces self-taught developers and career-switchers that traditional ATS systems filter out.",
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-  },
-  {
-    icon: <TrendingUp className="w-6 h-6" />,
-    title: "Trajectory Analysis",
-    description:
-      "Measures career velocity — how fast someone grew, not just where they started.",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-  },
-  {
-    icon: <Shield className="w-6 h-6" />,
-    title: "Proof of Work Validation",
-    description:
-      "Generates hyper-specific technical questions to verify every resume claim.",
-    color: "text-purple-400",
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/20",
-  },
-];
+function LandingContent() {
+  const { locale } = useLocale();
 
-export default function LandingPage() {
+  const features = [
+    {
+      icon: <Sparkles className="w-6 h-6" />,
+      title: t("landing.feature1Title", locale),
+      description: t("landing.feature1Desc", locale),
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/20",
+    },
+    {
+      icon: <TrendingUp className="w-6 h-6" />,
+      title: t("landing.feature2Title", locale),
+      description: t("landing.feature2Desc", locale),
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/20",
+    },
+    {
+      icon: <Shield className="w-6 h-6" />,
+      title: t("landing.feature3Title", locale),
+      description: t("landing.feature3Desc", locale),
+      color: "text-purple-400",
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/20",
+    },
+  ];
+
+  const steps = [
+    { step: "01", title: t("landing.step1Title", locale), desc: t("landing.step1Desc", locale) },
+    { step: "02", title: t("landing.step2Title", locale), desc: t("landing.step2Desc", locale) },
+    { step: "03", title: t("landing.step3Title", locale), desc: t("landing.step3Desc", locale) },
+  ];
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Animated background orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/8 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" />
+        <motion.div 
+          animate={{ x: [0, 50, 0], y: [0, -50, 0], scale: [1, 1.1, 1] }} 
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" 
+        />
+        <motion.div 
+          animate={{ x: [0, -50, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }} 
+          transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 2 }}
+          className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" 
+        />
+        <motion.div 
+          animate={{ x: [0, 30, -30, 0], y: [0, -30, 30, 0] }} 
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" 
+        />
       </div>
 
       {/* Navbar */}
@@ -110,12 +129,13 @@ export default function LandingPage() {
           </div>
           <span className="text-xl font-bold tracking-tight">Apex</span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground hidden md:block">
-            Built for the future of hiring
+            {t("landing.builtFor", locale)}
           </span>
+          <LanguageSwitcher />
           <Link
-            href="/dashboard"
+            href="/sign-in"
             className="text-sm bg-secondary/50 border border-border px-4 py-2 rounded-full hover:bg-secondary transition-colors"
           >
             Sign In
@@ -137,7 +157,7 @@ export default function LandingPage() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <span className="text-sm text-muted-foreground">
-            Intelligence layer active
+            {t("landing.badge", locale)}
           </span>
         </motion.div>
 
@@ -148,11 +168,11 @@ export default function LandingPage() {
           animate="visible"
           className="text-5xl md:text-7xl font-bold tracking-tight leading-tight max-w-4xl mb-6"
         >
-          Stop filtering.
+          {t("landing.headline1", locale)}
           <br />
           Start{" "}
           <span className="bg-gradient-to-r from-primary via-purple-400 to-emerald-400 bg-clip-text text-transparent">
-            understanding.
+            {t("landing.headline2", locale)}
           </span>
         </motion.h1>
 
@@ -163,8 +183,7 @@ export default function LandingPage() {
           animate="visible"
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-4 leading-relaxed"
         >
-          Apex reads career trajectories, validates claims with AI, and surfaces
-          the brilliant candidates that every other ATS filters out.
+          {t("landing.subheadline", locale)}
         </motion.p>
 
         <motion.div
@@ -188,12 +207,12 @@ export default function LandingPage() {
             href="/dashboard"
             className="group flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3.5 rounded-full font-semibold text-base hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
           >
-            Enter Command Center
+            {t("landing.cta", locale)}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <button className="flex items-center gap-2 bg-secondary/50 border border-border px-8 py-3.5 rounded-full font-semibold text-base hover:bg-secondary transition-colors">
-            Watch Demo
-          </button>
+          <a href="#how-it-works" className="flex items-center gap-2 bg-secondary/50 border border-border px-8 py-3.5 rounded-full font-semibold text-base hover:bg-secondary transition-colors">
+            {t("landing.howItWorks", locale)}
+          </a>
         </motion.div>
 
         {/* Stats row */}
@@ -205,11 +224,11 @@ export default function LandingPage() {
           className="flex gap-12 mt-20 text-center"
         >
           {[
-            { value: "12,000+", label: "Hidden Gems Found" },
-            { value: "40%", label: "Faster Hiring" },
-            { value: "3.2s", label: "Avg Analysis Time" },
+            { value: "12,000+", label: t("landing.statsGems", locale) },
+            { value: "40%", label: t("landing.statsFaster", locale) },
+            { value: "3.2s", label: t("landing.statsTime", locale) },
           ].map((stat) => (
-            <div key={stat.label}>
+            <div key={stat.value}>
               <div className="text-2xl md:text-3xl font-bold">
                 {stat.value}
               </div>
@@ -229,7 +248,7 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="text-center text-3xl font-bold mb-4"
         >
-          Beyond keyword matching
+          {t("landing.featuresTitle", locale)}
         </motion.h2>
         <motion.p
           initial={{ opacity: 0 }}
@@ -237,14 +256,13 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="text-center text-muted-foreground mb-12 max-w-xl mx-auto"
         >
-          Three AI-powered capabilities that understand humans, not just
-          documents.
+          {t("landing.featuresSubtitle", locale)}
         </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((feature, i) => (
             <motion.div
-              key={feature.title}
+              key={i}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -265,6 +283,30 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* How it works */}
+      <section id="how-it-works" className="relative z-10 px-8 md:px-16 pb-32 max-w-5xl mx-auto scroll-mt-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="glass-panel p-8 md:p-12 border-primary/20"
+        >
+          <h2 className="text-3xl font-bold mb-10 text-center">{t("landing.howTitle", locale)}</h2>
+          
+          <div className="space-y-12">
+            {steps.map((item, idx) => (
+              <div key={idx} className="flex flex-col md:flex-row gap-6 items-start group">
+                <div className="text-5xl font-black text-primary/20 mt-1 group-hover:text-primary/40 transition-colors">{item.step}</div>
+                <div>
+                  <h4 className="text-xl font-bold mb-2">{item.title}</h4>
+                  <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
       {/* Footer */}
       <footer className="relative z-10 border-t border-border py-8 px-8 md:px-16">
         <div className="flex justify-between items-center max-w-6xl mx-auto">
@@ -273,10 +315,18 @@ export default function LandingPage() {
             <span className="text-sm font-semibold">Apex</span>
           </div>
           <span className="text-xs text-muted-foreground">
-            Built with AI. For humans.
+            {t("landing.footer", locale)}
           </span>
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <LocaleProvider>
+      <LandingContent />
+    </LocaleProvider>
   );
 }

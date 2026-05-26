@@ -1,8 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
-import { Candidate } from "@/lib/data";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(req: Request) {
   try {
@@ -13,8 +12,7 @@ export async function POST(req: Request) {
     }
 
     if (!process.env.GEMINI_API_KEY) {
-      // Fallback response for hackathon demo if no API key is provided
-      const fallbackCandidate: Candidate = {
+      return NextResponse.json({
         id: "c_" + Math.random().toString(36).substr(2, 9),
         name: "Demo Candidate (No API Key)",
         role: "Senior Software Engineer",
@@ -29,30 +27,25 @@ export async function POST(req: Request) {
             bullets: ["Wrote code", "Fixed bugs"]
           }
         ],
-        education: {
-          degree: "B.S. CS",
-          school: "Demo University",
-          year: "2020"
-        },
+        education: { degree: "B.S. CS", school: "Demo University", year: "2020" },
         links: { github: "github.com/demo" },
+        location: "Bengaluru, India",
         isProcessed: true,
         hiddenGemScore: 45,
         adjacencyScore: 50,
         trajectoryNotes: "Standard trajectory detected."
-      };
-      return NextResponse.json(fallbackCandidate);
+      });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
     const prompt = `
-      You are an elite Applicant Tracking System designed to find "Hidden Gems".
+      You are an elite Applicant Tracking System designed to find "Hidden Gems" in the Indian tech ecosystem.
       Analyze the following resume text and output a JSON representation of the candidate.
       
       Look specifically for:
       1. Growth Velocity: Did they get promoted quickly? Did their scope increase fast?
       2. Skill Adjacency: Do their tools/languages indicate strong foundational engineering (e.g. Rust/C++) even if they don't match standard web dev keywords?
       3. Trajectory: Is this person a self-taught underdog who built complex things, or a standard pedigree candidate?
+      4. Indian Context: Consider Tier-1/2/3 city backgrounds, IIT/NIT vs bootcamp vs self-taught, startup vs service company experience.
       
       Resume Text:
       """
@@ -61,7 +54,7 @@ export async function POST(req: Request) {
       
       Return ONLY a JSON object with this exact structure:
       {
-        "id": "generate a random string like c_123",
+        "id": "generate a random string like c_abc123",
         "name": "Candidate Name",
         "role": "Most recent or most prominent role",
         "summary": "A 2-sentence summary of their profile",
@@ -83,8 +76,9 @@ export async function POST(req: Request) {
         "links": {
           "github": "Any github/portfolio link found, or empty string"
         },
+        "location": "City, Country",
         "isProcessed": true,
-        "hiddenGemScore": number between 0 and 100 (Score highly if they show rapid growth or complex systems work without traditional pedigree),
+        "hiddenGemScore": number between 0 and 100,
         "adjacencyScore": number between 0 and 100,
         "trajectoryNotes": "A 2-3 sentence explanation of WHY they got this hidden gem score. Be specific."
       }
@@ -92,11 +86,12 @@ export async function POST(req: Request) {
       Do not include any markdown formatting like \`\`\`json. Just return the raw JSON object.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
-    
-    // Clean up potential markdown wrapper
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    const text = (response.text ?? "").trim();
     const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     return NextResponse.json(JSON.parse(cleanText));

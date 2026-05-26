@@ -1,25 +1,34 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { ChevronRight, ExternalLink, Sparkles, TrendingUp } from "lucide-react";
+import { ChevronRight, ExternalLink, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { MatchResult } from "@/app/dashboard/page";
+import { useLocale } from "@/lib/locale-context";
+import { t } from "@/lib/i18n";
 
 interface CandidateCardProps {
   candidate: Candidate;
   onOpenProofOfWork: (candidateId: string, claim: string) => void;
+  matchResult?: MatchResult;
 }
 
-export function CandidateCard({ candidate, onOpenProofOfWork }: CandidateCardProps) {
-  const isHiddenGem = candidate.id === "c_001"; // Hardcoded for hackathon demo
+export function CandidateCard({ candidate, onOpenProofOfWork, matchResult }: CandidateCardProps) {
+  const { locale } = useLocale();
+  const isHiddenGem = candidate.hiddenGemScore && candidate.hiddenGemScore > 80;
 
   return (
     <div className={cn(
       "glass-panel p-6 flex flex-col md:flex-row gap-6 relative overflow-hidden transition-all duration-300 hover:border-primary/50",
-      isHiddenGem ? "border-primary/30 bg-primary/5" : ""
+      isHiddenGem ? "border-primary/30 bg-primary/5" : "",
+      matchResult?.isShortlisted ? "border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]" : ""
     )}>
       {isHiddenGem && (
         <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none"></div>
+      )}
+      {matchResult?.isShortlisted && (
+        <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
       )}
       
       <div className="flex-1 flex flex-col gap-4">
@@ -27,58 +36,96 @@ export function CandidateCard({ candidate, onOpenProofOfWork }: CandidateCardPro
           <div>
             <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
               {candidate.name}
+              {matchResult?.isShortlisted && (
+                <span className="flex items-center gap-1 text-xs font-semibold bg-purple-500/20 text-purple-400 px-2 py-1 rounded-md border border-purple-500/30">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {t("card.shortlisted", locale)}
+                </span>
+              )}
               {isHiddenGem && (
-                <>
-                  <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2 py-1 rounded-md border border-primary/30">
-                    <Sparkles className="w-3 h-3" />
-                    Hidden Gem
-                  </span>
-                  <span className="flex items-center gap-2 text-xs font-medium ml-2 px-3 py-1 rounded-full bg-secondary border border-border">
-                    <span className="text-muted-foreground line-through">Traditional ATS Rank: #47</span>
-                    <span className="text-primary font-bold">Apex Rank: #1</span>
-                  </span>
-                </>
+                <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2 py-1 rounded-md border border-primary/30">
+                  <Sparkles className="w-3 h-3" />
+                  {t("card.hiddenGem", locale)}
+                </span>
               )}
             </h3>
-            <p className="text-muted-foreground mt-1">{candidate.role}</p>
+            <p className="text-muted-foreground mt-1 flex items-center gap-2">
+              {candidate.role} 
+              {candidate.location && (
+                <span className="flex items-center gap-1 text-xs">
+                  <MapPin className="w-3 h-3" /> {candidate.location}
+                </span>
+              )}
+            </p>
           </div>
           <div className="flex gap-2">
             {candidate.skills.slice(0, 3).map(skill => (
-              <span key={skill} className="text-xs bg-secondary px-2 py-1 rounded text-secondary-foreground">
+              <span key={skill} className="text-xs bg-secondary px-2 py-1 rounded text-secondary-foreground border border-border">
                 {skill}
               </span>
             ))}
             {candidate.skills.length > 3 && (
-              <span className="text-xs bg-secondary/50 px-2 py-1 rounded text-muted-foreground">
+              <span className="text-xs bg-secondary/50 px-2 py-1 rounded text-muted-foreground border border-border">
                 +{candidate.skills.length - 3}
               </span>
             )}
           </div>
         </div>
 
+        {/* JD Match Result Section */}
+        {matchResult && (
+          <div className="bg-secondary/40 border border-border rounded-lg p-4 mt-2">
+            <div className="flex flex-col md:flex-row justify-between gap-4 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl font-bold text-foreground">
+                  {matchResult.overallScore}<span className="text-sm text-muted-foreground font-normal">/100</span>
+                </div>
+                <div className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">{t("card.matchScore", locale)}</div>
+              </div>
+              <div className="flex gap-4 text-xs font-medium">
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground">Technical</span>
+                  <span className="text-blue-400">{matchResult.technicalFit}%</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground">Trajectory</span>
+                  <span className="text-emerald-400">{matchResult.trajectoryFit}%</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground">Cultural</span>
+                  <span className="text-purple-400">{matchResult.culturalFit}%</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-foreground/80 italic border-l-2 border-purple-500/50 pl-3">
+              "{matchResult.reasoning}"
+            </p>
+          </div>
+        )}
+
         <p className="text-sm text-foreground/80 leading-relaxed">{candidate.summary}</p>
 
-        {isHiddenGem && (
+        {isHiddenGem && candidate.trajectoryNotes && !matchResult && (
           <div className="mt-2 bg-primary/10 border border-primary/20 rounded-lg p-4 flex gap-4 items-start">
             <div className="bg-primary/20 p-2 rounded shrink-0">
               <TrendingUp className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-primary mb-1">High Velocity Trajectory</h4>
-              <p className="text-xs text-primary/80">Promoted from Junior to Lead in 18 months. Transitioned from monolithic Node.js to distributed systems in Rust. High skill adjacency for Senior Platform roles.</p>
+              <h4 className="text-sm font-semibold text-primary mb-1">{t("card.trajectory", locale)}</h4>
+              <p className="text-xs text-primary/80">{candidate.trajectoryNotes}</p>
             </div>
           </div>
         )}
 
         <div className="mt-4 border-t border-border pt-4">
           <div className="flex justify-between items-center mb-3">
-            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Experience Highlights</h4>
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t("card.experience", locale)}</h4>
             <Link href={`/dashboard/candidate/${candidate.id}`} className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 transition-colors font-medium">
-              View Full Profile <ExternalLink className="w-3 h-3" />
+              {t("card.viewProfile", locale)} <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
           <div className="flex flex-col gap-3">
-            {candidate.experience.map((exp, idx) => (
+            {candidate.experience.slice(0, 2).map((exp, idx) => (
               <div key={idx} className="flex flex-col gap-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-semibold">{exp.role}</span>
@@ -87,14 +134,15 @@ export function CandidateCard({ candidate, onOpenProofOfWork }: CandidateCardPro
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <span>{exp.company}</span>
                 </div>
-                {/* Just showing the first bullet point as a highlight */}
-                <div className="group flex items-start gap-2 mt-1 bg-secondary/20 p-2 rounded border border-border/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => onOpenProofOfWork(candidate.id, exp.bullets[0])}>
-                  <ChevronRight className="w-4 h-4 mt-0.5 text-primary/50 group-hover:text-primary shrink-0" />
-                  <p className="text-sm text-foreground/90 flex-1">{exp.bullets[0]}</p>
-                  <button className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-primary-foreground px-2 py-1 rounded whitespace-nowrap">
-                    Validate Claim
-                  </button>
-                </div>
+                {exp.bullets.length > 0 && (
+                  <div className="group flex items-start gap-2 mt-1 bg-secondary/20 p-2 rounded border border-border/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => onOpenProofOfWork(candidate.id, exp.bullets[0])}>
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-primary/50 group-hover:text-primary shrink-0" />
+                    <p className="text-sm text-foreground/90 flex-1">{exp.bullets[0]}</p>
+                    <button className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary text-primary-foreground px-2 py-1 rounded whitespace-nowrap flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> {t("card.validate", locale)}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
