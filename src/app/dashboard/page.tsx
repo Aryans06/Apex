@@ -226,7 +226,7 @@ function DashboardContent() {
             <Upload className="w-4 h-4" />
             {t("dash.upload", locale)}
           </button>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </header>
 
