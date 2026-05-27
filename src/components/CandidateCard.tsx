@@ -12,9 +12,10 @@ interface CandidateCardProps {
   candidate: Candidate;
   onOpenProofOfWork: (candidateId: string, claim: string) => void;
   matchResult?: MatchResult;
+  rank?: number;
 }
 
-export function CandidateCard({ candidate, onOpenProofOfWork, matchResult }: CandidateCardProps) {
+export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank }: CandidateCardProps) {
   const { locale } = useLocale();
   const isHiddenGem = candidate.hiddenGemScore && candidate.hiddenGemScore > 80;
 
@@ -35,6 +36,14 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult }: Can
         <div className="flex justify-between items-start">
           <div>
             <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
+              {rank !== undefined && (
+                <span className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-lg font-black text-sm",
+                  rank <= 3 ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-purple-400" : "bg-secondary text-muted-foreground border border-border"
+                )}>
+                  #{rank}
+                </span>
+              )}
               {candidate.name}
               {matchResult?.isShortlisted && (
                 <span className="flex items-center gap-1 text-xs font-semibold bg-purple-500/20 text-purple-400 px-2 py-1 rounded-md border border-purple-500/30">

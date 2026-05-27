@@ -4,7 +4,7 @@ import { mockCandidates, Candidate } from "@/lib/data";
 import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search } from "lucide-react";
 import { CandidateCard } from "@/components/CandidateCard";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserButton } from "@clerk/nextjs";
@@ -32,9 +32,27 @@ function DashboardContent() {
   const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
-  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [activeJD, setActiveJD] = useState("");
+
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        const res = await fetch("/api/candidates");
+        if (res.ok) {
+          const data = await res.json();
+          setCandidates(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch candidates:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCandidates();
+  }, []);
 
   const handleOpenProofOfWork = (candidateId: string, claim: string) => {
     setSelectedClaim(claim);
@@ -292,22 +310,30 @@ function DashboardContent() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 gap-6">
-          {displayedCandidates.map((candidate, idx) => (
-            <motion.div key={candidate.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + (idx * 0.1) }}>
-              <CandidateCard 
-                candidate={candidate} 
-                onOpenProofOfWork={handleOpenProofOfWork}
-                matchResult={matchResults.find(r => r.candidateId === candidate.id)}
-              />
-            </motion.div>
-          ))}
-          {displayedCandidates.length === 0 && (
-            <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-xl">
-              {t("dash.noResults", locale)}
-            </div>
-          )}
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p>Loading candidates...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {displayedCandidates.map((candidate, idx) => (
+              <motion.div key={candidate.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + (idx * 0.1) }}>
+                <CandidateCard 
+                  candidate={candidate} 
+                  onOpenProofOfWork={handleOpenProofOfWork}
+                  matchResult={matchResults.find(r => r.candidateId === candidate.id)}
+                  rank={matchResults.length > 0 ? idx + 1 : undefined}
+                />
+              </motion.div>
+            ))}
+            {displayedCandidates.length === 0 && (
+              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-xl">
+                {t("dash.noResults", locale)}
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
     </main>
   );

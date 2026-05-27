@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Candidate {
+  id              String       @id @default(uuid())
+  name            String
+  role            String
+  summary         String
+  skills          String       // Stored as comma-separated string
+  location        String?
+  isProcessed     Boolean      @default(false)
+  hiddenGemScore  Int?
+  trajectoryNotes String?
+  adjacencyScore  Int?
+  githubUrl       String?
+  portfolioUrl    String?
+  
+  experiences     Experience[]
+  education       Education?
+}
+
+model Experience {
+  id          String    @id @default(uuid())
+  role        String
+  company     String
+  duration    String
+  description String
+  bullets     String    // Stored as JSON string
+  
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id          String    @id @default(uuid())
+  degree      String
+  school      String
+  year        String
+  
+  candidateId String    @unique
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
