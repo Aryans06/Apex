@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-context";
 import { t } from "@/lib/i18n";
+import { SignInButton } from "@clerk/nextjs";
 
 const typewriterWords = [
   "Skill Adjacency",
@@ -134,12 +135,11 @@ function LandingContent() {
             {t("landing.builtFor", locale)}
           </span>
           <LanguageSwitcher />
-          <Link
-            href="/sign-in"
-            className="text-sm bg-secondary/50 border border-border px-4 py-2 rounded-full hover:bg-secondary transition-colors"
-          >
-            Sign In
-          </Link>
+          <SignInButton mode="modal">
+            <button className="text-sm bg-secondary/50 border border-border px-4 py-2 rounded-full hover:bg-secondary transition-colors">
+              Sign In
+            </button>
+          </SignInButton>
         </div>
       </motion.nav>
 
