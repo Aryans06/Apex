@@ -1,9 +1,9 @@
 "use client";
 
-import { Sparkles, ArrowRight, Zap, Shield, TrendingUp } from "lucide-react";
+import { Sparkles, ArrowRight, Zap, Shield, TrendingUp, Briefcase, FileText, Upload, Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
 import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-context";
 import { t } from "@/lib/i18n";
 import { SignInButton } from "@clerk/nextjs";
@@ -63,6 +63,43 @@ const fadeUp = {
 function LandingContent() {
   const { locale } = useLocale();
 
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
+  const [resumeText, setResumeText] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const resumeFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleStudentUpload = async () => {
+    if (!resumeText.trim() && !resumeFile) return;
+    setUploadState("uploading");
+    
+    const formData = new FormData();
+    if (resumeText.trim()) formData.append("text", resumeText);
+    if (resumeFile) formData.append("file", resumeFile);
+
+    setTimeout(async () => {
+      setUploadState("analyzing");
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          body: formData
+        });
+        if (!res.ok) throw new Error("Analysis failed");
+        
+        setUploadState("done");
+        setTimeout(() => { 
+          setStudentModalOpen(false); 
+          setUploadState("idle"); 
+          setResumeText(""); 
+          setResumeFile(null); 
+        }, 3000);
+      } catch (error) {
+        console.error("Upload error:", error);
+        setUploadState("idle");
+      }
+    }, 800);
+  };
+
   const features = [
     {
       icon: <Sparkles className="w-6 h-6" />,
@@ -98,6 +135,101 @@ function LandingContent() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+      
+      {/* Student Upload Modal */}
+      <AnimatePresence>
+        {studentModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-panel w-full max-w-md overflow-hidden relative">
+              <div className="p-8 text-center flex flex-col items-center">
+                {uploadState === "idle" && (
+                  <>
+                    <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-6">
+                      <GraduationCapIcon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Submit Your Profile</h3>
+                    <p className="text-sm text-muted-foreground mb-6">Upload your resume to join the Apex talent pool and get matched with top opportunities.</p>
+                    
+                    <div className="w-full flex flex-col gap-4 mb-4">
+                      {resumeFile ? (
+                        <div className="flex items-center justify-between bg-primary/10 border border-primary/30 p-3 rounded-lg">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <FileText className="w-5 h-5 text-primary shrink-0" />
+                            <span className="text-sm truncate text-primary font-medium">{resumeFile.name}</span>
+                          </div>
+                          <button onClick={() => setResumeFile(null)} className="text-xs text-muted-foreground hover:text-foreground">Remove</button>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => resumeFileInputRef.current?.click()}
+                          className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/30 transition-colors"
+                        >
+                          <FileText className="w-6 h-6 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Click to upload PDF resume</span>
+                          <input 
+                            type="file" 
+                            accept=".pdf" 
+                            ref={resumeFileInputRef} 
+                            className="hidden" 
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                setResumeFile(e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase">
+                        <div className="flex-1 h-px bg-border"></div>
+                        <span>OR PASTE TEXT</span>
+                        <div className="flex-1 h-px bg-border"></div>
+                      </div>
+                      
+                      <textarea 
+                        value={resumeText} 
+                        onChange={(e) => setResumeText(e.target.value)} 
+                        placeholder="Paste your resume text here..." 
+                        className="w-full h-32 bg-secondary/50 border border-border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" 
+                        disabled={!!resumeFile}
+                      />
+                    </div>
+
+                    <div className="flex gap-3 w-full">
+                      <button onClick={() => { setStudentModalOpen(false); setResumeFile(null); setResumeText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">Cancel</button>
+                      <button onClick={handleStudentUpload} disabled={!resumeText.trim() && !resumeFile} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">Submit Profile</button>
+                    </div>
+                  </>
+                )}
+                {uploadState === "uploading" && (
+                  <div className="py-12 flex flex-col items-center">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
+                    <h3 className="text-lg font-medium animate-pulse">Uploading securely...</h3>
+                  </div>
+                )}
+                {uploadState === "analyzing" && (
+                  <div className="py-12 flex flex-col items-center relative">
+                    <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+                    <Sparkles className="w-12 h-12 text-primary animate-bounce mb-6 relative z-10" />
+                    <h3 className="text-lg font-medium text-primary mb-2 relative z-10">AI Parsing Profile...</h3>
+                    <p className="text-xs text-muted-foreground relative z-10">Extracting skills and potential</p>
+                  </div>
+                )}
+                {uploadState === "done" && (
+                  <div className="py-12 flex flex-col items-center">
+                    <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border border-emerald-500/30">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-emerald-400">Profile Submitted!</h3>
+                    <p className="text-xs text-muted-foreground mt-2">You are now visible to top recruiters.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Animated background orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div 
@@ -201,18 +333,32 @@ function LandingContent() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="flex flex-col sm:flex-row gap-4"
+          className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl mt-4"
         >
+          {/* Dual Entry Points */}
           <Link
             href="/dashboard"
-            className="group flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3.5 rounded-full font-semibold text-base hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
+            className="flex-1 group glass-panel p-6 border-purple-500/20 hover:border-purple-500/50 bg-secondary/50 hover:bg-secondary/80 transition-all flex flex-col items-center cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.05)] hover:shadow-[0_0_30px_rgba(168,85,247,0.15)]"
           >
-            {t("landing.cta", locale)}
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <Briefcase className="w-8 h-8 text-purple-400 mb-3" />
+            <h3 className="font-bold text-lg mb-1">I&apos;m a Recruiter</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">Post JDs, discover hidden gems, and manage candidates.</p>
+            <span className="text-purple-400 font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              Enter ATS <ArrowRight className="w-4 h-4" />
+            </span>
           </Link>
-          <a href="#how-it-works" className="flex items-center gap-2 bg-secondary/50 border border-border px-8 py-3.5 rounded-full font-semibold text-base hover:bg-secondary transition-colors">
-            {t("landing.howItWorks", locale)}
-          </a>
+          
+          <div
+            onClick={() => setStudentModalOpen(true)}
+            className="flex-1 group glass-panel p-6 border-primary/20 hover:border-primary/50 bg-secondary/50 hover:bg-secondary/80 transition-all flex flex-col items-center cursor-pointer shadow-[0_0_20px_rgba(59,130,246,0.05)] hover:shadow-[0_0_30px_rgba(59,130,246,0.15)]"
+          >
+            <GraduationCapIcon className="w-8 h-8 text-primary mb-3" />
+            <h3 className="font-bold text-lg mb-1">I&apos;m a Job Seeker</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">Submit your profile and let our AI match you to top roles.</p>
+            <span className="text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              Submit Profile <ArrowRight className="w-4 h-4" />
+            </span>
+          </div>
         </motion.div>
 
         {/* Stats row */}
@@ -320,6 +466,28 @@ function LandingContent() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// Simple icon for the button
+function GraduationCapIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21.42 10.922a2 2 0 0 0-.019-3.838L12.83 4.33a2 2 0 0 0-1.66 0L2.6 7.08a2 2 0 0 0 0 3.832l8.57 2.75a2 2 0 0 0 1.66 0z" />
+      <path d="M22 10v6" />
+      <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
+    </svg>
   );
 }
 

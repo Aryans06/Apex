@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserButton } from "@clerk/nextjs";
 import { Sparkles, Upload, Loader2, CheckCircle2, MapPin, Briefcase, GraduationCap, Link2, ChevronRight, TrendingUp } from "lucide-react";
 import { Candidate } from "@/lib/data";
@@ -15,15 +15,17 @@ function ProfileContent() {
   const [resumeText, setResumeText] = useState("");
   const [uploadState, setUploadState] = useState<"idle" | "analyzing" | "done">("idle");
   const [profile, setProfile] = useState<Candidate | null>(null);
+  const [barsMounted, setBarsMounted] = useState(false);
 
   const handleUpload = async () => {
     if (!resumeText.trim()) return;
     setUploadState("analyzing");
     try {
+      const formData = new FormData();
+      formData.append("text", resumeText);
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText })
+        body: formData
       });
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
@@ -34,6 +36,15 @@ function ProfileContent() {
       setUploadState("idle");
     }
   };
+
+  useEffect(() => {
+    if (profile) {
+      const timer = setTimeout(() => setBarsMounted(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setBarsMounted(false);
+    }
+  }, [profile]);
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -148,10 +159,10 @@ function ProfileContent() {
                     <span className="text-primary font-bold">{profile.hiddenGemScore || 0}%</span>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden shadow-[0_0_10px_rgba(59,130,246,0.2)]">
-                    <div className="h-full bg-primary" style={{ width: `${profile.hiddenGemScore || 0}%` }} />
+                    <div className="h-full bg-primary transition-all duration-1000" style={{ width: barsMounted ? `${profile.hiddenGemScore || 0}%` : "0%" }} />
                   </div>
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-purple-400 flex items-center gap-1">
@@ -160,7 +171,7 @@ function ProfileContent() {
                     <span className="text-purple-400 font-bold">{profile.adjacencyScore || 0}%</span>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                    <div className="h-full bg-purple-400" style={{ width: `${profile.adjacencyScore || 0}%` }} />
+                    <div className="h-full bg-purple-400 transition-all duration-1000" style={{ width: barsMounted ? `${profile.adjacencyScore || 0}%` : "0%" }} />
                   </div>
                 </div>
               </div>

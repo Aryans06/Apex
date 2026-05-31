@@ -1,40 +1,33 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(req: Request) {
   try {
-    const { resumeText } = await req.json();
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const textInput = formData.get("text") as string | null;
 
-    if (!resumeText) {
-      return NextResponse.json({ error: "Missing resume text" }, { status: 400 });
+    let resumeText = textInput || "";
+
+    if (file) {
+      if (typeof global !== "undefined" && !(global as any).DOMMatrix) {
+        (global as any).DOMMatrix = class DOMMatrix {};
+      }
+      const pdfParse = require("pdf-parse");
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const data = await pdfParse(buffer);
+      resumeText += "\n" + data.text;
+    }
+
+    if (!resumeText.trim()) {
+      return NextResponse.json({ error: "Missing resume text or file" }, { status: 400 });
     }
 
     if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({
-        id: "c_" + Math.random().toString(36).substr(2, 9),
-        name: "Demo Candidate (No API Key)",
-        role: "Senior Software Engineer",
-        summary: "This is a mock response because GEMINI_API_KEY is not set.",
-        skills: ["JavaScript", "React", "Node.js"],
-        experience: [
-          {
-            role: "Developer",
-            company: "Tech Corp",
-            duration: "2020 - 2023",
-            description: "Built web applications.",
-            bullets: ["Wrote code", "Fixed bugs"]
-          }
-        ],
-        education: { degree: "B.S. CS", school: "Demo University", year: "2020" },
-        links: { github: "github.com/demo" },
-        location: "Bengaluru, India",
-        isProcessed: true,
-        hiddenGemScore: 45,
-        adjacencyScore: 50,
-        trajectoryNotes: "Standard trajectory detected."
-      });
+      return NextResponse.json({ error: "Missing Gemini API Key" }, { status: 500 });
     }
 
     const prompt = `
@@ -93,11 +86,85 @@ export async function POST(req: Request) {
 
     const text = (response.text ?? "").trim();
     const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
+    let candidateData;
+    try {
+      candidateData = JSON.parse(cleanText);
+    } catch (e) {
+      console.error("Failed to parse Gemini output:", cleanText);
+      throw new Error("Invalid JSON from AI");
+    }
 
-    return NextResponse.json(JSON.parse(cleanText));
+    // Persist to DB
+    const savedCandidate = await db.candidate.create({
+      data: {
+        name: candidateData.name || "Unknown Candidate",
+        role: candidateData.role || "Software Engineer",
+        summary: candidateData.summary || "",
+        skills: Array.isArray(candidateData.skills) ? candidateData.skills.join(",") : "",
+        location: candidateData.location,
+        isProcessed: true,
+        hiddenGemScore: candidateData.hiddenGemScore,
+        trajectoryNotes: candidateData.trajectoryNotes,
+        adjacencyScore: candidateData.adjacencyScore,
+        githubUrl: candidateData.links?.github,
+        portfolioUrl: candidateData.links?.portfolio,
+        experiences: {
+          create: (candidateData.experience || []).map((exp: any) => ({
+            role: exp.role || "",
+            company: exp.company || "",
+            duration: exp.duration || "",
+            description: exp.description || "",
+            bullets: JSON.stringify(exp.bullets || [])
+          }))
+        },
+        education: candidateData.education ? {
+          create: {
+            degree: candidateData.education.degree || "",
+            school: candidateData.education.school || "",
+            year: candidateData.education.year || ""
+          }
+        } : undefined
+      },
+      include: {
+        experiences: true,
+        education: true
+      }
+    });
+
+    const formatted = {
+      id: savedCandidate.id,
+      name: savedCandidate.name,
+      role: savedCandidate.role,
+      summary: savedCandidate.summary,
+      skills: savedCandidate.skills.split(",").filter(Boolean),
+      location: savedCandidate.location,
+      isProcessed: savedCandidate.isProcessed,
+      hiddenGemScore: savedCandidate.hiddenGemScore,
+      trajectoryNotes: savedCandidate.trajectoryNotes,
+      adjacencyScore: savedCandidate.adjacencyScore,
+      links: {
+        github: savedCandidate.githubUrl || "",
+        portfolio: savedCandidate.portfolioUrl || undefined
+      },
+      experience: savedCandidate.experiences.map(e => ({
+        role: e.role,
+        company: e.company,
+        duration: e.duration,
+        description: e.description,
+        bullets: JSON.parse(e.bullets)
+      })),
+      education: savedCandidate.education ? {
+        degree: savedCandidate.education.degree,
+        school: savedCandidate.education.school,
+        year: savedCandidate.education.year
+      } : { degree: "", school: "", year: "" }
+    };
+
+    return NextResponse.json(formatted);
     
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Analyze API Error:", error);
     return NextResponse.json({ error: "Failed to analyze resume" }, { status: 500 });
   }
 }

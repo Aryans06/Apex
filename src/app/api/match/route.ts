@@ -1,28 +1,46 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
+if (typeof globalThis !== "undefined" && !(globalThis as any).DOMMatrix) {
+  (globalThis as any).DOMMatrix = class DOMMatrix {};
+}
+
+const pdfParse = require("pdf-parse");
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(req: Request) {
   try {
-    const { jobDescription, candidates } = await req.json();
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const textInput = formData.get("text") as string | null;
+    const candidatesStr = formData.get("candidates") as string | null;
 
-    if (!jobDescription || !candidates || candidates.length === 0) {
+    let jobDescription = textInput || "";
+
+    if (file) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const data = await pdfParse(buffer);
+      jobDescription += "\n" + data.text;
+    }
+
+    if (!jobDescription.trim() || !candidatesStr) {
       return NextResponse.json({ error: "Missing job description or candidates" }, { status: 400 });
     }
 
+    let candidates;
+    try {
+      candidates = JSON.parse(candidatesStr);
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid candidates JSON" }, { status: 400 });
+    }
+
+    if (!candidates || candidates.length === 0) {
+      return NextResponse.json({ error: "Missing candidates" }, { status: 400 });
+    }
+
     if (!process.env.GEMINI_API_KEY) {
-      // Mock fallback for demo without API key
-      const mockRanked = candidates.map((c: any, i: number) => ({
-        candidateId: c.id,
-        overallScore: Math.max(95 - i * 15, 20),
-        technicalFit: Math.max(90 - i * 12, 15),
-        trajectoryFit: Math.max(92 - i * 10, 25),
-        culturalFit: Math.max(88 - i * 8, 30),
-        reasoning: `Mock analysis: ${c.name} shows ${i === 0 ? 'exceptional' : i === 1 ? 'strong' : 'moderate'} alignment with the role requirements.`,
-        isShortlisted: i < 2,
-      }));
-      return NextResponse.json({ rankings: mockRanked });
+      return NextResponse.json({ error: "Missing Gemini API Key" }, { status: 500 });
     }
 
     // Build candidate summaries for Gemini

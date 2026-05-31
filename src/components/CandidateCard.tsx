@@ -91,17 +91,26 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank 
                 </div>
                 <div className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">{t("card.matchScore", locale)}</div>
               </div>
-              <div className="flex gap-4 text-xs font-medium">
-                <div className="flex flex-col gap-1">
+              <div className="flex gap-5 text-xs font-medium">
+                <div className="flex flex-col gap-1.5 min-w-[64px]">
                   <span className="text-muted-foreground">Technical</span>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden w-16">
+                    <div className="h-full bg-blue-400 rounded-full" style={{ width: `${matchResult.technicalFit}%` }} />
+                  </div>
                   <span className="text-blue-400">{matchResult.technicalFit}%</span>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5 min-w-[64px]">
                   <span className="text-muted-foreground">Trajectory</span>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden w-16">
+                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${matchResult.trajectoryFit}%` }} />
+                  </div>
                   <span className="text-emerald-400">{matchResult.trajectoryFit}%</span>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5 min-w-[64px]">
                   <span className="text-muted-foreground">Cultural</span>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden w-16">
+                    <div className="h-full bg-purple-400 rounded-full" style={{ width: `${matchResult.culturalFit}%` }} />
+                  </div>
                   <span className="text-purple-400">{matchResult.culturalFit}%</span>
                 </div>
               </div>

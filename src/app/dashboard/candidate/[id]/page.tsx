@@ -16,6 +16,7 @@ export default function CandidateProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState("");
+  const [barsMounted, setBarsMounted] = useState(false);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -34,6 +35,13 @@ export default function CandidateProfile() {
     };
     fetchCandidate();
   }, [candidateId]);
+
+  useEffect(() => {
+    if (!isLoading && candidate) {
+      const timer = setTimeout(() => setBarsMounted(true), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, candidate]);
 
   const isHiddenGem = candidate?.hiddenGemScore && candidate.hiddenGemScore > 80;
 
@@ -77,7 +85,7 @@ export default function CandidateProfile() {
   const traditionalMatch = Math.max(100 - trajectoryScore, 20);
 
   return (
-    <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto">
+    <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto dot-grid">
       <ProofOfWorkModal 
         isOpen={modalOpen} 
         onClose={() => setModalOpen(false)} 
@@ -155,7 +163,7 @@ export default function CandidateProfile() {
                   <span className="text-muted-foreground">{traditionalMatch}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-muted-foreground/50 transition-all duration-1000" style={{ width: `${traditionalMatch}%` }} />
+                  <div className="h-full bg-muted-foreground/50 transition-all duration-1000" style={{ width: barsMounted ? `${traditionalMatch}%` : "0%" }} />
                 </div>
               </div>
 
@@ -167,10 +175,10 @@ export default function CandidateProfile() {
                   <span className="text-primary font-bold">{trajectoryScore}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden shadow-[0_0_10px_rgba(59,130,246,0.2)]">
-                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${trajectoryScore}%` }} />
+                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: barsMounted ? `${trajectoryScore}%` : "0%" }} />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="font-medium text-purple-400 flex items-center gap-1">
@@ -179,7 +187,7 @@ export default function CandidateProfile() {
                   <span className="text-purple-400 font-bold">{adjacencyScore}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                  <div className="h-full bg-purple-400 transition-all duration-1000" style={{ width: `${adjacencyScore}%` }} />
+                  <div className="h-full bg-purple-400 transition-all duration-1000" style={{ width: barsMounted ? `${adjacencyScore}%` : "0%" }} />
                 </div>
               </div>
             </div>
