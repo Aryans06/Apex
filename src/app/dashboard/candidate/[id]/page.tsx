@@ -1,22 +1,41 @@
 "use client";
 
-import { mockCandidates } from "@/lib/data";
-import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap } from "lucide-react";
+import { Candidate } from "@/lib/data";
+import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
 
 export default function CandidateProfile() {
   const params = useParams();
   const candidateId = params?.id as string;
-  const candidate = mockCandidates.find(c => c.id === candidateId) || mockCandidates[0]; // Fallback for demo
-  
+
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState("");
-  
-  const isHiddenGem = candidate.id === "c_001";
+
+  useEffect(() => {
+    const fetchCandidate = async () => {
+      try {
+        const res = await fetch("/api/candidates");
+        if (res.ok) {
+          const data: Candidate[] = await res.json();
+          const found = data.find(c => c.id === candidateId);
+          setCandidate(found || null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch candidate:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCandidate();
+  }, [candidateId]);
+
+  const isHiddenGem = candidate?.hiddenGemScore && candidate.hiddenGemScore > 80;
 
   const handleOpenProofOfWork = (claim: string) => {
     setSelectedClaim(claim);
@@ -27,6 +46,35 @@ export default function CandidateProfile() {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } })
   };
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center gap-4 text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p>Loading candidate profile...</p>
+      </main>
+    );
+  }
+
+  if (!candidate) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center gap-6">
+        <div className="glass-panel p-12 text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-3">Candidate Not Found</h2>
+          <p className="text-muted-foreground mb-6">The candidate you are looking for does not exist in the database.</p>
+          <Link href="/dashboard" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-medium hover:bg-primary/90 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // Compute dynamic scores from candidate data
+  const trajectoryScore = candidate.hiddenGemScore ?? 50;
+  const adjacencyScore = candidate.adjacencyScore ?? 50;
+  // Traditional match is intentionally lower for "hidden gems" to show the contrast
+  const traditionalMatch = Math.max(100 - trajectoryScore, 20);
 
   return (
     <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto">
@@ -56,16 +104,32 @@ export default function CandidateProfile() {
               {candidate.name.split(' ').map(n => n[0]).join('')}
             </div>
             
-            <h1 className="text-3xl font-bold mb-1">{candidate.name}</h1>
+            <h1 className="text-3xl font-bold mb-1 flex items-center gap-3">
+              {candidate.name}
+              {isHiddenGem && (
+                <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2.5 py-1 rounded-md border border-primary/30">
+                  <Sparkles className="w-3 h-3" /> Hidden Gem
+                </span>
+              )}
+            </h1>
             <p className="text-muted-foreground text-lg mb-6">{candidate.role}</p>
             
             <div className="flex flex-col gap-4 text-sm">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <MapPin className="w-4 h-4" /> San Francisco, CA (Remote)
-              </div>
-              <div className="flex items-center gap-3 text-foreground hover:text-primary transition-colors cursor-pointer">
-                <Link2 className="w-4 h-4" /> {candidate.links.github}
-              </div>
+              {candidate.location && (
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <MapPin className="w-4 h-4" /> {candidate.location}
+                </div>
+              )}
+              {candidate.links?.github && (
+                <div className="flex items-center gap-3 text-foreground hover:text-primary transition-colors cursor-pointer">
+                  <Link2 className="w-4 h-4" /> {candidate.links.github}
+                </div>
+              )}
+              {candidate.links?.portfolio && (
+                <div className="flex items-center gap-3 text-foreground hover:text-primary transition-colors cursor-pointer">
+                  <Link2 className="w-4 h-4" /> {candidate.links.portfolio}
+                </div>
+              )}
               <div className="flex items-center gap-3 text-muted-foreground">
                 <GraduationCap className="w-4 h-4" /> {candidate.education.degree}, {candidate.education.school}
               </div>
@@ -88,10 +152,10 @@ export default function CandidateProfile() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="font-medium text-foreground">Traditional Match</span>
-                  <span className="text-muted-foreground">42%</span>
+                  <span className="text-muted-foreground">{traditionalMatch}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full bg-muted-foreground/50 w-[42%]" />
+                  <div className="h-full bg-muted-foreground/50 transition-all duration-1000" style={{ width: `${traditionalMatch}%` }} />
                 </div>
               </div>
 
@@ -100,10 +164,10 @@ export default function CandidateProfile() {
                   <span className="font-medium text-primary flex items-center gap-1">
                     <TrendingUp className="w-4 h-4" /> Trajectory Velocity
                   </span>
-                  <span className="text-primary font-bold">96%</span>
+                  <span className="text-primary font-bold">{trajectoryScore}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden shadow-[0_0_10px_rgba(59,130,246,0.2)]">
-                  <div className="h-full bg-primary w-[96%]" />
+                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${trajectoryScore}%` }} />
                 </div>
               </div>
               
@@ -112,10 +176,10 @@ export default function CandidateProfile() {
                   <span className="font-medium text-purple-400 flex items-center gap-1">
                     <Zap className="w-4 h-4" /> Skill Adjacency
                   </span>
-                  <span className="text-purple-400 font-bold">88%</span>
+                  <span className="text-purple-400 font-bold">{adjacencyScore}%</span>
                 </div>
                 <div className="h-2 bg-secondary rounded-full overflow-hidden shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                  <div className="h-full bg-purple-400 w-[88%]" />
+                  <div className="h-full bg-purple-400 transition-all duration-1000" style={{ width: `${adjacencyScore}%` }} />
                 </div>
               </div>
             </div>
@@ -126,14 +190,21 @@ export default function CandidateProfile() {
         <div className="lg:col-span-2 flex flex-col gap-6">
           
           {/* AI Summary Card */}
-          <motion.div custom={2} variants={fadeInUp} initial="hidden" animate="visible" className="glass-panel p-8 border-primary/30 bg-primary/5 relative">
-            <div className="absolute top-0 right-8 -translate-y-1/2 bg-background border border-primary/30 text-primary px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-              <Sparkles className="w-3 h-3" /> AI Synthesis
-            </div>
-            
-            <p className="text-lg leading-relaxed text-foreground/90 font-medium italic">
-              "Alex demonstrates exceptional growth velocity, transitioning from standard Node.js development to architecting high-throughput distributed systems in Rust in just 18 months. While lacking formal pedigree, their proven ability to handle complex concurrency and database optimization heavily compensates for missing keyword requirements. Highly recommended for Senior Platform roles."
-            </p>
+          {candidate.trajectoryNotes && (
+            <motion.div custom={2} variants={fadeInUp} initial="hidden" animate="visible" className="glass-panel p-8 border-primary/30 bg-primary/5 relative">
+              <div className="absolute top-0 right-8 -translate-y-1/2 bg-background border border-primary/30 text-primary px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <Sparkles className="w-3 h-3" /> AI Synthesis
+              </div>
+              
+              <p className="text-lg leading-relaxed text-foreground/90 font-medium italic">
+                &quot;{candidate.trajectoryNotes}&quot;
+              </p>
+            </motion.div>
+          )}
+
+          {/* Summary */}
+          <motion.div custom={2.5} variants={fadeInUp} initial="hidden" animate="visible" className="glass-panel p-6">
+            <p className="text-foreground/80 leading-relaxed">{candidate.summary}</p>
           </motion.div>
 
           {/* Timeline Experience */}
