@@ -2,6 +2,12 @@ import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+if (typeof globalThis !== "undefined" && !(globalThis as any).DOMMatrix) {
+  (globalThis as any).DOMMatrix = class DOMMatrix {};
+}
+
+const _pdf = require("pdf-parse");
+const pdfParse = _pdf.default || _pdf;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(req: Request) {
@@ -13,10 +19,6 @@ export async function POST(req: Request) {
     let resumeText = textInput || "";
 
     if (file) {
-      if (typeof global !== "undefined" && !(global as any).DOMMatrix) {
-        (global as any).DOMMatrix = class DOMMatrix {};
-      }
-      const pdfParse = require("pdf-parse");
       const buffer = Buffer.from(await file.arrayBuffer());
       const data = await pdfParse(buffer);
       resumeText += "\n" + data.text;
@@ -165,6 +167,7 @@ export async function POST(req: Request) {
     
   } catch (error) {
     console.error("Analyze API Error:", error);
-    return NextResponse.json({ error: "Failed to analyze resume" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to analyze resume";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

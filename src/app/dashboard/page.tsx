@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText } from "lucide-react";
+import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle } from "lucide-react";
 import { CandidateCard } from "@/components/CandidateCard";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
 import { useState, useEffect, useRef } from "react";
@@ -26,9 +26,12 @@ function DashboardContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [jdOpen, setJdOpen] = useState(false);
-  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
-  const [jdState, setJdState] = useState<"idle" | "matching" | "done">("idle");
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done" | "error">("idle");
+  const [uploadError, setUploadError] = useState("");
+  const [jdState, setJdState] = useState<"idle" | "matching" | "done" | "error">("idle");
+  const [jdError, setJdError] = useState("");
   const [selectedClaim, setSelectedClaim] = useState("");
+  const [selectedCandidateName, setSelectedCandidateName] = useState("");
   const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -64,7 +67,9 @@ function DashboardContent() {
     fetchCandidates();
   }, []);
 
-  const handleOpenProofOfWork = (_candidateId: string, claim: string) => {
+  const handleOpenProofOfWork = (candidateId: string, claim: string) => {
+    const candidate = candidates.find(c => c.id === candidateId);
+    setSelectedCandidateName(candidate?.name ?? "");
     setSelectedClaim(claim);
     setModalOpen(true);
   };
@@ -84,19 +89,24 @@ function DashboardContent() {
           method: "POST",
           body: formData
         });
-        if (!res.ok) throw new Error("Analysis failed");
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || "Analysis failed");
+        }
         const newCandidate = await res.json();
         setCandidates(prev => [newCandidate, ...prev]);
         setUploadState("done");
-        setTimeout(() => { 
-          setUploadOpen(false); 
-          setUploadState("idle"); 
-          setResumeText(""); 
-          setResumeFile(null); 
+        setTimeout(() => {
+          setUploadOpen(false);
+          setUploadState("idle");
+          setUploadError("");
+          setResumeText("");
+          setResumeFile(null);
         }, 2000);
       } catch (error) {
         console.error("Upload error:", error);
-        setUploadState("idle");
+        setUploadError(error instanceof Error ? error.message : "Analysis failed");
+        setUploadState("error");
       }
     }, 800);
   };
@@ -115,7 +125,10 @@ function DashboardContent() {
         method: "POST",
         body: formData
       });
-      if (!res.ok) throw new Error("Match failed");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || "Match failed");
+      }
       const data = await res.json();
       setMatchResults(data.rankings || []);
       
@@ -131,7 +144,8 @@ function DashboardContent() {
       }, 1500);
     } catch (error) {
       console.error("JD match error:", error);
-      setJdState("idle");
+      setJdError(error instanceof Error ? error.message : "Match failed");
+      setJdState("error");
     }
   };
 
@@ -182,9 +196,10 @@ function DashboardContent() {
       </div>
 
       <ProofOfWorkModal
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        claim={selectedClaim} 
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        claim={selectedClaim}
+        candidateName={selectedCandidateName}
       />
 
       {/* Upload Modal */}
@@ -247,7 +262,7 @@ function DashboardContent() {
                     </div>
 
                     <div className="flex gap-3 w-full">
-                      <button onClick={() => { setUploadOpen(false); setResumeFile(null); setResumeText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
+                      <button onClick={() => { setUploadOpen(false); setUploadState("idle"); setUploadError(""); setResumeFile(null); setResumeText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
                       <button onClick={handleUpload} disabled={!resumeText.trim() && !resumeFile} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">{t("upload.analyze", locale)}</button>
                     </div>
                   </>
@@ -273,6 +288,21 @@ function DashboardContent() {
                     </div>
                     <h3 className="text-lg font-medium text-emerald-400">{t("upload.done", locale)}</h3>
                     <p className="text-xs text-muted-foreground mt-2">{t("upload.doneHint", locale)}</p>
+                  </div>
+                )}
+                {uploadState === "error" && (
+                  <div className="py-12 flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center border border-red-500/30">
+                      <AlertCircle className="w-8 h-8 text-red-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-red-400">Analysis Failed</h3>
+                    {uploadError && <p className="text-xs text-muted-foreground text-center max-w-xs break-words bg-secondary/50 border border-border rounded-lg px-3 py-2">{uploadError}</p>}
+                    <button
+                      onClick={() => { setUploadState("idle"); setUploadError(""); }}
+                      className="px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
+                    >
+                      Try Again
+                    </button>
                   </div>
                 )}
               </div>
@@ -341,7 +371,7 @@ function DashboardContent() {
                     </div>
 
                     <div className="flex gap-3 w-full">
-                      <button onClick={() => { setJdOpen(false); setJdFile(null); setJdText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
+                      <button onClick={() => { setJdOpen(false); setJdState("idle"); setJdError(""); setJdFile(null); setJdText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
                       <button onClick={handlePostJD} disabled={!jdText.trim() && !jdFile} className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-500/90 transition-colors shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed">{t("jd.analyze", locale)}</button>
                     </div>
                   </>
@@ -361,6 +391,21 @@ function DashboardContent() {
                     </div>
                     <h3 className="text-lg font-medium text-emerald-400">Ranking Complete</h3>
                     <p className="text-xs text-muted-foreground mt-2">Candidates sorted by match score.</p>
+                  </div>
+                )}
+                {jdState === "error" && (
+                  <div className="py-12 flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center border border-red-500/30">
+                      <AlertCircle className="w-8 h-8 text-red-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-red-400">Matching Failed</h3>
+                    {jdError && <p className="text-xs text-muted-foreground text-center max-w-xs break-words bg-secondary/50 border border-border rounded-lg px-3 py-2">{jdError}</p>}
+                    <button
+                      onClick={() => { setJdState("idle"); setJdError(""); }}
+                      className="px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
+                    >
+                      Try Again
+                    </button>
                   </div>
                 )}
               </div>

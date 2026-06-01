@@ -5,7 +5,8 @@ if (typeof globalThis !== "undefined" && !(globalThis as any).DOMMatrix) {
   (globalThis as any).DOMMatrix = class DOMMatrix {};
 }
 
-const pdfParse = require("pdf-parse");
+const _pdf = require("pdf-parse");
+const pdfParse = _pdf.default || _pdf;
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 

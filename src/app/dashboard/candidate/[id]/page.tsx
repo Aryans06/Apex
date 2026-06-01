@@ -86,10 +86,11 @@ export default function CandidateProfile() {
 
   return (
     <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto dot-grid">
-      <ProofOfWorkModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        claim={selectedClaim} 
+      <ProofOfWorkModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        claim={selectedClaim}
+        candidateName={candidate.name}
       />
 
       {/* Navigation */}
