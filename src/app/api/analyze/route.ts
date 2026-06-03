@@ -2,12 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-if (typeof globalThis !== "undefined" && !(globalThis as any).DOMMatrix) {
-  (globalThis as any).DOMMatrix = class DOMMatrix {};
-}
-
-const _pdf = require("pdf-parse");
-const pdfParse = _pdf.default || _pdf;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(req: Request) {
@@ -17,14 +11,14 @@ export async function POST(req: Request) {
     const textInput = formData.get("text") as string | null;
 
     let resumeText = textInput || "";
+    let pdfBase64: string | null = null;
 
     if (file) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const data = await pdfParse(buffer);
-      resumeText += "\n" + data.text;
+      pdfBase64 = buffer.toString("base64");
     }
 
-    if (!resumeText.trim()) {
+    if (!resumeText.trim() && !pdfBase64) {
       return NextResponse.json({ error: "Missing resume text or file" }, { status: 400 });
     }
 
@@ -32,58 +26,48 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing Gemini API Key" }, { status: 500 });
     }
 
-    const prompt = `
-      You are an elite Applicant Tracking System designed to find "Hidden Gems" in the Indian tech ecosystem.
-      Analyze the following resume text and output a JSON representation of the candidate.
-      
-      Look specifically for:
-      1. Growth Velocity: Did they get promoted quickly? Did their scope increase fast?
-      2. Skill Adjacency: Do their tools/languages indicate strong foundational engineering (e.g. Rust/C++) even if they don't match standard web dev keywords?
-      3. Trajectory: Is this person a self-taught underdog who built complex things, or a standard pedigree candidate?
-      4. Indian Context: Consider Tier-1/2/3 city backgrounds, IIT/NIT vs bootcamp vs self-taught, startup vs service company experience.
-      
-      Resume Text:
-      """
-      ${resumeText}
-      """
-      
-      Return ONLY a JSON object with this exact structure:
-      {
-        "id": "generate a random string like c_abc123",
-        "name": "Candidate Name",
-        "role": "Most recent or most prominent role",
-        "summary": "A 2-sentence summary of their profile",
-        "skills": ["Array", "of", "skills"],
-        "experience": [
-          {
-            "role": "Job Title",
-            "company": "Company Name",
-            "duration": "e.g., 2020 - 2023",
-            "description": "Short description of the role",
-            "bullets": ["Achievement 1", "Achievement 2"]
-          }
-        ],
-        "education": {
-          "degree": "Degree name",
-          "school": "School name",
-          "year": "Graduation year"
-        },
-        "links": {
-          "github": "Any github/portfolio link found, or empty string"
-        },
-        "location": "City, Country",
-        "isProcessed": true,
-        "hiddenGemScore": number between 0 and 100,
-        "adjacencyScore": number between 0 and 100,
-        "trajectoryNotes": "A 2-3 sentence explanation of WHY they got this hidden gem score. Be specific."
-      }
-      
-      Do not include any markdown formatting like \`\`\`json. Just return the raw JSON object.
-    `;
+    const instruction = `You are an ATS for the Indian tech ecosystem. Analyze this resume and return a JSON object.
+
+IMPORTANT: Keep ALL text fields SHORT and CONCISE.
+- "summary": Max 2 short sentences (under 30 words total).
+- "trajectoryNotes": Max 2 short sentences (under 30 words total).
+- "description" in experience: Max 1 sentence (under 15 words).
+- "bullets" in experience: Max 3 bullets, each under 15 words.
+- "skills": Max 8 most relevant skills.
+
+Look for: Growth Velocity, Skill Adjacency, Trajectory (self-taught vs pedigree), Indian context (Tier-1/2/3, IIT vs bootcamp vs self-taught).
+
+Return ONLY this JSON structure, no markdown:
+{
+  "name": "Name",
+  "role": "Current/recent role",
+  "summary": "Brief 2-sentence summary",
+  "skills": ["skill1", "skill2"],
+  "experience": [{"role": "Title", "company": "Company", "duration": "2020-2023", "description": "Brief desc", "bullets": ["Short achievement"]}],
+  "education": {"degree": "Degree", "school": "School", "year": "Year"},
+  "links": {"github": "url or empty"},
+  "location": "City, Country",
+  "hiddenGemScore": 0-100,
+  "adjacencyScore": 0-100,
+  "trajectoryNotes": "Brief 2-sentence explanation of score"
+}`;
+
+    // Build the request parts
+    const parts: any[] = [];
+
+    if (pdfBase64) {
+      parts.push({ inlineData: { mimeType: "application/pdf", data: pdfBase64 } });
+    }
+
+    if (resumeText.trim()) {
+      parts.push({ text: `Resume Text:\n${resumeText}` });
+    }
+
+    parts.push({ text: instruction });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: prompt,
+      contents: [{ role: "user", parts }],
     });
 
     const text = (response.text ?? "").trim();
@@ -92,8 +76,8 @@ export async function POST(req: Request) {
     let candidateData;
     try {
       candidateData = JSON.parse(cleanText);
-    } catch (e) {
-      console.error("Failed to parse Gemini output:", cleanText);
+    } catch {
+      console.error("Failed to parse Gemini output:", cleanText.substring(0, 500));
       throw new Error("Invalid JSON from AI");
     }
 
@@ -102,22 +86,22 @@ export async function POST(req: Request) {
       data: {
         name: candidateData.name || "Unknown Candidate",
         role: candidateData.role || "Software Engineer",
-        summary: candidateData.summary || "",
-        skills: Array.isArray(candidateData.skills) ? candidateData.skills.join(",") : "",
+        summary: (candidateData.summary || "").substring(0, 300),
+        skills: Array.isArray(candidateData.skills) ? candidateData.skills.slice(0, 8).join(",") : "",
         location: candidateData.location,
         isProcessed: true,
         hiddenGemScore: candidateData.hiddenGemScore,
-        trajectoryNotes: candidateData.trajectoryNotes,
+        trajectoryNotes: (candidateData.trajectoryNotes || "").substring(0, 300),
         adjacencyScore: candidateData.adjacencyScore,
         githubUrl: candidateData.links?.github,
         portfolioUrl: candidateData.links?.portfolio,
         experiences: {
-          create: (candidateData.experience || []).map((exp: any) => ({
+          create: (candidateData.experience || []).slice(0, 4).map((exp: any) => ({
             role: exp.role || "",
             company: exp.company || "",
             duration: exp.duration || "",
-            description: exp.description || "",
-            bullets: JSON.stringify(exp.bullets || [])
+            description: (exp.description || "").substring(0, 200),
+            bullets: JSON.stringify((exp.bullets || []).slice(0, 3))
           }))
         },
         education: candidateData.education ? {
