@@ -1,4 +1,8 @@
-@AGENTS.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> **Next.js 16 warning**: This version has breaking changes — APIs, conventions, and file structure may differ from training data. Check `node_modules/next/dist/docs/` before writing any Next.js-specific code. Heed deprecation notices.
 
 # Apex ATS — Hackathon Project
 
@@ -50,6 +54,7 @@ src/
       analyze/route.ts          # POST: parse resume PDF/text → Gemini → Prisma
       match/route.ts            # POST: rank candidates against a JD
       generate-assessment/route.ts  # POST: generate proof-of-work questions
+      send-assessment/route.ts  # POST: email assessment questions via nodemailer
       candidates/route.ts       # GET: list all candidates from DB
       seed/route.ts             # POST: seed demo data
   components/
@@ -61,7 +66,7 @@ src/
     i18n.ts                     # Translation strings (en/hi/ta/bn/te)
     locale-context.tsx          # React context + LanguageSwitcher component
     utils.ts                    # Utility helpers
-  proxy.ts
+  proxy.ts                      # Clerk middleware (protects /dashboard and /profile)
 prisma/
   schema.prisma                 # Candidate, Experience, Education models
 ```
