@@ -1,12 +1,12 @@
 "use client";
 
-import { Sparkles, ArrowRight, Zap, Shield, TrendingUp, Briefcase, FileText, Upload, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Zap, Shield, TrendingUp, Briefcase, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-context";
 import { t } from "@/lib/i18n";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 
 const typewriterWords = [
   "Skill Adjacency",
@@ -60,8 +60,34 @@ const fadeUp = {
   }),
 };
 
+function FloatingParticles() {
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 3 + 1,
+    duration: Math.random() * 15 + 10,
+    delay: Math.random() * 8,
+  }));
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full bg-primary/20"
+          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size }}
+          animate={{ y: [0, -40, 0], opacity: [0, 0.6, 0] }}
+          transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: "easeInOut" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function LandingContent() {
   const { locale } = useLocale();
+  const { isSignedIn, isLoaded } = useUser();
 
   const [studentModalOpen, setStudentModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done">("idle");
@@ -230,6 +256,8 @@ function LandingContent() {
         )}
       </AnimatePresence>
 
+      <FloatingParticles />
+
       {/* Animated background orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div 
@@ -267,11 +295,22 @@ function LandingContent() {
             {t("landing.builtFor", locale)}
           </span>
           <LanguageSwitcher />
-          <SignInButton mode="modal">
-            <button className="text-sm bg-secondary/50 border border-border px-4 py-2 rounded-full hover:bg-secondary transition-colors">
-              Sign In
-            </button>
-          </SignInButton>
+          {isLoaded && (
+            isSignedIn ? (
+              <Link
+                href="/dashboard"
+                className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-full hover:bg-primary/90 transition-colors font-medium"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <SignInButton mode="modal">
+                <button className="text-sm bg-secondary/50 border border-border px-4 py-2 rounded-full hover:bg-secondary transition-colors">
+                  Sign In
+                </button>
+              </SignInButton>
+            )
+          )}
         </div>
       </motion.nav>
 
