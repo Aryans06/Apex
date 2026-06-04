@@ -34,6 +34,7 @@ IMPORTANT: Keep ALL text fields SHORT and CONCISE.
 - "description" in experience: Max 1 sentence (under 15 words).
 - "bullets" in experience: Max 3 bullets, each under 15 words.
 - "skills": Max 8 most relevant skills.
+- "redFlags": Array of strings, each under 10 words. Max 4 flags. Only include if genuinely suspicious (unexplained gaps >1yr, job-hopping every <6mo, vague bullets with no metrics, title inflation). Empty array if clean resume.
 
 Look for: Growth Velocity, Skill Adjacency, Trajectory (self-taught vs pedigree), Indian context (Tier-1/2/3, IIT vs bootcamp vs self-taught).
 
@@ -49,7 +50,8 @@ Return ONLY this JSON structure, no markdown:
   "location": "City, Country",
   "hiddenGemScore": 0-100,
   "adjacencyScore": 0-100,
-  "trajectoryNotes": "Brief 2-sentence explanation of score"
+  "trajectoryNotes": "Brief 2-sentence explanation of score",
+  "redFlags": ["Flag description if any"]
 }`;
 
     // Build the request parts
@@ -93,6 +95,7 @@ Return ONLY this JSON structure, no markdown:
         hiddenGemScore: candidateData.hiddenGemScore,
         trajectoryNotes: (candidateData.trajectoryNotes || "").substring(0, 300),
         adjacencyScore: candidateData.adjacencyScore,
+        redFlags: JSON.stringify(Array.isArray(candidateData.redFlags) ? candidateData.redFlags.slice(0, 4) : []),
         githubUrl: candidateData.links?.github,
         portfolioUrl: candidateData.links?.portfolio,
         experiences: {
