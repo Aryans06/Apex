@@ -1,14 +1,18 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle } from "lucide-react";
+import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle, GitCompare, Mail } from "lucide-react";
 import { CandidateCard } from "@/components/CandidateCard";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
+import { BulkUploadModal } from "@/components/BulkUploadModal";
+import { CompareModal } from "@/components/CompareModal";
+import { OutreachModal } from "@/components/OutreachModal";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { FilterBar, FilterState, defaultFilters } from "@/components/FilterBar";
+import { useToast } from "@/components/Toast";
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserButton } from "@clerk/nextjs";
-import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-context";
+import { LanguageSwitcher, LocaleProvider, useLocale } from "@/lib/locale-context";
 import { t } from "@/lib/i18n";
 
 export interface MatchResult {
@@ -23,53 +27,77 @@ export interface MatchResult {
 
 function DashboardContent() {
   const { locale } = useLocale();
+  const { toast } = useToast();
+
+  // Modal open states
   const [modalOpen, setModalOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [jdOpen, setJdOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [outreachOpen, setOutreachOpen] = useState(false);
+
+  // Upload single resume state
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "analyzing" | "done" | "error">("idle");
   const [uploadError, setUploadError] = useState("");
-  const [jdState, setJdState] = useState<"idle" | "matching" | "done" | "error">("idle");
-  const [jdError, setJdError] = useState("");
-  const [selectedClaim, setSelectedClaim] = useState("");
-  const [selectedCandidateName, setSelectedCandidateName] = useState("");
-  const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  // File vs Text states
   const [resumeText, setResumeText] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  
+  const resumeFileInputRef = useRef<HTMLInputElement>(null);
+
+  // JD matching state
+  const [jdState, setJdState] = useState<"idle" | "matching" | "done" | "error">("idle");
+  const [jdError, setJdError] = useState("");
   const [jdText, setJdText] = useState("");
   const [jdFile, setJdFile] = useState<File | null>(null);
-  
-  const resumeFileInputRef = useRef<HTMLInputElement>(null);
   const jdFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Data
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [activeJD, setActiveJD] = useState("");
 
+  // Proof of work
+  const [selectedClaim, setSelectedClaim] = useState("");
+  const [selectedCandidateName, setSelectedCandidateName] = useState("");
+
+  // Comparison
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+
+  // Outreach
+  const [outreachCandidate, setOutreachCandidate] = useState<Candidate | null>(null);
+
+  // Filters + search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+
+  // Fetch candidates
   useEffect(() => {
-    const fetchCandidates = async () => {
+    fetch("/api/candidates")
+      .then((r) => r.json())
+      .then((data) => setCandidates(data))
+      .catch(() => toast("Failed to load candidates", "error"))
+      .finally(() => setIsLoading(false));
+  }, [toast]);
+
+  // Pick up a pending JD from Saved Jobs page
+  useEffect(() => {
+    const pending = sessionStorage.getItem("pending_jd");
+    if (pending) {
+      sessionStorage.removeItem("pending_jd");
       try {
-        const res = await fetch("/api/candidates");
-        if (res.ok) {
-          const data = await res.json();
-          setCandidates(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch candidates:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchCandidates();
+        const { content } = JSON.parse(pending);
+        setJdText(content);
+        setJdOpen(true);
+      } catch { /* ignore */ }
+    }
   }, []);
 
+  // --- Handlers ---
   const handleOpenProofOfWork = (candidateId: string, claim: string) => {
-    const candidate = candidates.find(c => c.id === candidateId);
-    setSelectedCandidateName(candidate?.name ?? "");
+    const c = candidates.find((c) => c.id === candidateId);
+    setSelectedCandidateName(c?.name ?? "");
     setSelectedClaim(claim);
     setModalOpen(true);
   };
@@ -77,36 +105,33 @@ function DashboardContent() {
   const handleUpload = async () => {
     if (!resumeText.trim() && !resumeFile) return;
     setUploadState("uploading");
-    
-    const formData = new FormData();
-    if (resumeText.trim()) formData.append("text", resumeText);
-    if (resumeFile) formData.append("file", resumeFile);
+    const fd = new FormData();
+    if (resumeText.trim()) fd.append("text", resumeText);
+    if (resumeFile) fd.append("file", resumeFile);
 
     setTimeout(async () => {
       setUploadState("analyzing");
       try {
-        const res = await fetch("/api/analyze", {
-          method: "POST",
-          body: formData
-        });
+        const res = await fetch("/api/analyze", { method: "POST", body: fd });
         if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}));
-          throw new Error(errBody.error || "Analysis failed");
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Analysis failed");
         }
         const newCandidate = await res.json();
-        setCandidates(prev => [newCandidate, ...prev]);
+        setCandidates((prev) => [newCandidate, ...prev]);
         setUploadState("done");
+        toast("Resume analyzed and added", "success");
         setTimeout(() => {
           setUploadOpen(false);
           setUploadState("idle");
           setUploadError("");
           setResumeText("");
           setResumeFile(null);
-        }, 2000);
-      } catch (error) {
-        console.error("Upload error:", error);
-        setUploadError(error instanceof Error ? error.message : "Analysis failed");
+        }, 1800);
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : "Analysis failed");
         setUploadState("error");
+        toast("Analysis failed", "error");
       }
     }, 800);
   };
@@ -114,99 +139,106 @@ function DashboardContent() {
   const handlePostJD = async () => {
     if (!jdText.trim() && !jdFile) return;
     setJdState("matching");
-    
-    const formData = new FormData();
-    if (jdText.trim()) formData.append("text", jdText);
-    if (jdFile) formData.append("file", jdFile);
-    formData.append("candidates", JSON.stringify(candidates));
+    const fd = new FormData();
+    if (jdText.trim()) fd.append("text", jdText);
+    if (jdFile) fd.append("file", jdFile);
+    fd.append("candidates", JSON.stringify(candidates));
 
     try {
-      const res = await fetch("/api/match", {
-        method: "POST",
-        body: formData
-      });
+      const res = await fetch("/api/match", { method: "POST", body: fd });
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || "Match failed");
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Match failed");
       }
       const data = await res.json();
       setMatchResults(data.rankings || []);
-      
-      const activeText = jdFile ? `File: ${jdFile.name}` : jdText.substring(0, 80) + "...";
-      setActiveJD(activeText);
-      
+      setActiveJD(jdFile ? `File: ${jdFile.name}` : jdText.substring(0, 80) + "…");
       setJdState("done");
-      setTimeout(() => { 
-        setJdOpen(false); 
-        setJdState("idle"); 
-        setJdText(""); 
-        setJdFile(null); 
-      }, 1500);
-    } catch (error) {
-      console.error("JD match error:", error);
-      setJdError(error instanceof Error ? error.message : "Match failed");
+      toast("Candidates ranked by JD match", "success");
+      setTimeout(() => { setJdOpen(false); setJdState("idle"); setJdText(""); setJdFile(null); }, 1200);
+    } catch (err) {
+      setJdError(err instanceof Error ? err.message : "Match failed");
       setJdState("error");
+      toast("Matching failed", "error");
     }
   };
 
-  // 1. Filter by search query
-  let filteredCandidates = candidates.filter(c => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(query) ||
-      c.role.toLowerCase().includes(query) ||
-      c.skills.some(s => s.toLowerCase().includes(query))
+  const toggleCompare = (id: string) => {
+    setSelectedForCompare((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length < 4 ? [...prev, id] : prev
     );
+  };
+
+  const candidatesForCompare = candidates.filter((c) => selectedForCompare.includes(c.id));
+
+  const openOutreach = (candidate: Candidate) => {
+    setOutreachCandidate(candidate);
+    setOutreachOpen(true);
+  };
+
+  // --- Filtering logic ---
+  let filtered = candidates.filter((c) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matches =
+        c.name.toLowerCase().includes(q) ||
+        c.role.toLowerCase().includes(q) ||
+        c.skills.some((s) => s.toLowerCase().includes(q));
+      if (!matches) return false;
+    }
+    if (filters.location.trim()) {
+      if (!c.location?.toLowerCase().includes(filters.location.toLowerCase())) return false;
+    }
+    if (filters.skills.length > 0) {
+      const hasAll = filters.skills.every((fs) =>
+        c.skills.some((s) => s.toLowerCase().includes(fs.toLowerCase()))
+      );
+      if (!hasAll) return false;
+    }
+    if (filters.minHiddenGem > 0) {
+      if ((c.hiddenGemScore ?? 0) < filters.minHiddenGem) return false;
+    }
+    return true;
   });
 
-  // 2. Sort by match score if we have results
-  const sortedCandidates = matchResults.length > 0
-    ? [...filteredCandidates].sort((a, b) => {
-        const scoreA = matchResults.find(r => r.candidateId === a.id)?.overallScore ?? 0;
-        const scoreB = matchResults.find(r => r.candidateId === b.id)?.overallScore ?? 0;
-        return scoreB - scoreA;
-      })
-    : filteredCandidates;
+  // Sort by match score
+  if (matchResults.length > 0) {
+    filtered = [...filtered].sort((a, b) => {
+      const sa = matchResults.find((r) => r.candidateId === a.id)?.overallScore ?? 0;
+      const sb = matchResults.find((r) => r.candidateId === b.id)?.overallScore ?? 0;
+      // Also apply match score range filter
+      return sb - sa;
+    }).filter((c) => {
+      const score = matchResults.find((r) => r.candidateId === c.id)?.overallScore ?? 0;
+      return score >= filters.minScore && score <= filters.maxScore;
+    });
+  }
 
-  // 3. Filter by hidden gems if toggled
-  const displayedCandidates = showHiddenGemsOnly 
-    ? sortedCandidates.filter(c => c.id === "c_001" || (c.hiddenGemScore && c.hiddenGemScore > 80)) 
-    : sortedCandidates;
+  const displayed = showHiddenGemsOnly
+    ? filtered.filter((c) => c.hiddenGemScore && c.hiddenGemScore > 80)
+    : filtered;
+
+  const allSkills = [...new Set(candidates.flatMap((c) => c.skills))].sort();
 
   return (
-    <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto relative dot-grid">
+    <main className="min-h-screen p-8 md:p-10 max-w-5xl mx-auto relative dot-grid">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <motion.div
-          animate={{ x: [0, 50, 0], y: [0, -50, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/4 -left-48 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ x: [0, -40, 0], y: [0, 40, 0] }}
-          transition={{ duration: 17, repeat: Infinity, ease: "linear", delay: 4 }}
-          className="absolute bottom-1/4 -right-48 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ x: [0, 25, -25, 0], y: [0, -25, 25, 0] }}
-          transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
-          className="absolute top-3/4 left-1/3 w-72 h-72 bg-emerald-500/4 rounded-full blur-3xl"
-        />
+        <motion.div animate={{ x: [0, 50, 0], y: [0, -50, 0] }} transition={{ duration: 22, repeat: Infinity, ease: "linear" }} className="absolute top-1/4 -left-48 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
+        <motion.div animate={{ x: [0, -40, 0], y: [0, 40, 0] }} transition={{ duration: 17, repeat: Infinity, ease: "linear", delay: 4 }} className="absolute bottom-1/4 -right-48 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl" />
       </div>
 
-      <ProofOfWorkModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        claim={selectedClaim}
-        candidateName={selectedCandidateName}
-      />
+      {/* Modals */}
+      <ProofOfWorkModal isOpen={modalOpen} onClose={() => setModalOpen(false)} claim={selectedClaim} candidateName={selectedCandidateName} />
+      <BulkUploadModal isOpen={bulkUploadOpen} onClose={() => setBulkUploadOpen(false)} onCandidatesAdded={(added) => setCandidates((prev) => [...added, ...prev])} />
+      <CompareModal candidates={candidatesForCompare} onClose={() => { setCompareOpen(false); setSelectedForCompare([]); }} />
+      <OutreachModal isOpen={outreachOpen} onClose={() => setOutreachOpen(false)} candidate={outreachCandidate} />
 
-      {/* Upload Modal */}
+      {/* Single upload modal */}
       <AnimatePresence>
         {uploadOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-panel w-full max-w-md overflow-hidden relative">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-panel w-full max-w-md overflow-hidden">
               <div className="p-8 text-center flex flex-col items-center">
                 {uploadState === "idle" && (
                   <>
@@ -215,7 +247,6 @@ function DashboardContent() {
                     </div>
                     <h3 className="text-xl font-bold mb-2">{t("upload.title", locale)}</h3>
                     <p className="text-sm text-muted-foreground mb-6">{t("upload.subtitle", locale)}</p>
-                    
                     <div className="w-full flex flex-col gap-4 mb-4">
                       {resumeFile ? (
                         <div className="flex items-center justify-between bg-primary/10 border border-primary/30 p-3 rounded-lg">
@@ -226,44 +257,20 @@ function DashboardContent() {
                           <button onClick={() => setResumeFile(null)} className="text-xs text-muted-foreground hover:text-foreground">Remove</button>
                         </div>
                       ) : (
-                        <div 
-                          onClick={() => resumeFileInputRef.current?.click()}
-                          className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/30 transition-colors"
-                        >
+                        <div onClick={() => resumeFileInputRef.current?.click()} className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-secondary/30 transition-colors">
                           <FileText className="w-6 h-6 text-muted-foreground mb-2" />
                           <span className="text-sm text-muted-foreground">Click to upload PDF</span>
-                          <input 
-                            type="file" 
-                            accept=".pdf" 
-                            ref={resumeFileInputRef} 
-                            className="hidden" 
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files.length > 0) {
-                                setResumeFile(e.target.files[0]);
-                              }
-                            }}
-                          />
+                          <input type="file" accept=".pdf" ref={resumeFileInputRef} className="hidden" onChange={(e) => { if (e.target.files?.[0]) setResumeFile(e.target.files[0]); }} />
                         </div>
                       )}
-                      
                       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase">
-                        <div className="flex-1 h-px bg-border"></div>
-                        <span>OR PASTE TEXT</span>
-                        <div className="flex-1 h-px bg-border"></div>
+                        <div className="flex-1 h-px bg-border" /><span>OR PASTE TEXT</span><div className="flex-1 h-px bg-border" />
                       </div>
-                      
-                      <textarea 
-                        value={resumeText} 
-                        onChange={(e) => setResumeText(e.target.value)} 
-                        placeholder={t("upload.placeholder", locale)} 
-                        className="w-full h-32 bg-secondary/50 border border-border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" 
-                        disabled={!!resumeFile}
-                      />
+                      <textarea value={resumeText} onChange={(e) => setResumeText(e.target.value)} placeholder={t("upload.placeholder", locale)} className="w-full h-32 bg-secondary/50 border border-border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" disabled={!!resumeFile} />
                     </div>
-
                     <div className="flex gap-3 w-full">
-                      <button onClick={() => { setUploadOpen(false); setUploadState("idle"); setUploadError(""); setResumeFile(null); setResumeText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
-                      <button onClick={handleUpload} disabled={!resumeText.trim() && !resumeFile} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">{t("upload.analyze", locale)}</button>
+                      <button onClick={() => { setUploadOpen(false); setUploadState("idle"); setResumeFile(null); setResumeText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
+                      <button onClick={handleUpload} disabled={!resumeText.trim() && !resumeFile} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50">{t("upload.analyze", locale)}</button>
                     </div>
                   </>
                 )}
@@ -296,13 +303,8 @@ function DashboardContent() {
                       <AlertCircle className="w-8 h-8 text-red-400" />
                     </div>
                     <h3 className="text-lg font-medium text-red-400">Analysis Failed</h3>
-                    {uploadError && <p className="text-xs text-muted-foreground text-center max-w-xs break-words bg-secondary/50 border border-border rounded-lg px-3 py-2">{uploadError}</p>}
-                    <button
-                      onClick={() => { setUploadState("idle"); setUploadError(""); }}
-                      className="px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
-                    >
-                      Try Again
-                    </button>
+                    {uploadError && <p className="text-xs text-muted-foreground text-center max-w-xs bg-secondary/50 border border-border rounded-lg px-3 py-2">{uploadError}</p>}
+                    <button onClick={() => { setUploadState("idle"); setUploadError(""); }} className="px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">Try Again</button>
                   </div>
                 )}
               </div>
@@ -311,11 +313,11 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      {/* JD Modal */}
+      {/* JD modal */}
       <AnimatePresence>
         {jdOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-panel w-full max-w-lg overflow-hidden relative border-purple-500/30">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-panel w-full max-w-lg overflow-hidden border-purple-500/30">
               <div className="p-8 text-center flex flex-col items-center">
                 {jdState === "idle" && (
                   <>
@@ -324,7 +326,6 @@ function DashboardContent() {
                     </div>
                     <h3 className="text-xl font-bold mb-2">{t("jd.title", locale)}</h3>
                     <p className="text-sm text-muted-foreground mb-6">{t("jd.subtitle", locale)}</p>
-                    
                     <div className="w-full flex flex-col gap-4 mb-4">
                       {jdFile ? (
                         <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/30 p-3 rounded-lg">
@@ -335,44 +336,20 @@ function DashboardContent() {
                           <button onClick={() => setJdFile(null)} className="text-xs text-muted-foreground hover:text-foreground">Remove</button>
                         </div>
                       ) : (
-                        <div 
-                          onClick={() => jdFileInputRef.current?.click()}
-                          className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-purple-500/50 hover:bg-secondary/30 transition-colors"
-                        >
+                        <div onClick={() => jdFileInputRef.current?.click()} className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-purple-500/50 hover:bg-secondary/30 transition-colors">
                           <FileText className="w-6 h-6 text-muted-foreground mb-2" />
                           <span className="text-sm text-muted-foreground">Click to upload JD PDF</span>
-                          <input 
-                            type="file" 
-                            accept=".pdf" 
-                            ref={jdFileInputRef} 
-                            className="hidden" 
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files.length > 0) {
-                                setJdFile(e.target.files[0]);
-                              }
-                            }}
-                          />
+                          <input type="file" accept=".pdf" ref={jdFileInputRef} className="hidden" onChange={(e) => { if (e.target.files?.[0]) setJdFile(e.target.files[0]); }} />
                         </div>
                       )}
-                      
                       <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase">
-                        <div className="flex-1 h-px bg-border"></div>
-                        <span>OR PASTE TEXT</span>
-                        <div className="flex-1 h-px bg-border"></div>
+                        <div className="flex-1 h-px bg-border" /><span>OR PASTE TEXT</span><div className="flex-1 h-px bg-border" />
                       </div>
-
-                      <textarea 
-                        value={jdText} 
-                        onChange={(e) => setJdText(e.target.value)} 
-                        placeholder={t("jd.placeholder", locale)} 
-                        className="w-full h-32 bg-secondary/50 border border-border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none" 
-                        disabled={!!jdFile}
-                      />
+                      <textarea value={jdText} onChange={(e) => setJdText(e.target.value)} placeholder={t("jd.placeholder", locale)} className="w-full h-32 bg-secondary/50 border border-border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none" disabled={!!jdFile} />
                     </div>
-
                     <div className="flex gap-3 w-full">
                       <button onClick={() => { setJdOpen(false); setJdState("idle"); setJdError(""); setJdFile(null); setJdText(""); }} className="flex-1 px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">{t("upload.cancel", locale)}</button>
-                      <button onClick={handlePostJD} disabled={!jdText.trim() && !jdFile} className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-500/90 transition-colors shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed">{t("jd.analyze", locale)}</button>
+                      <button onClick={handlePostJD} disabled={!jdText.trim() && !jdFile} className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-500/90 transition-colors shadow-lg shadow-purple-500/20 disabled:opacity-50">{t("jd.analyze", locale)}</button>
                     </div>
                   </>
                 )}
@@ -390,7 +367,6 @@ function DashboardContent() {
                       <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                     </div>
                     <h3 className="text-lg font-medium text-emerald-400">Ranking Complete</h3>
-                    <p className="text-xs text-muted-foreground mt-2">Candidates sorted by match score.</p>
                   </div>
                 )}
                 {jdState === "error" && (
@@ -399,13 +375,8 @@ function DashboardContent() {
                       <AlertCircle className="w-8 h-8 text-red-400" />
                     </div>
                     <h3 className="text-lg font-medium text-red-400">Matching Failed</h3>
-                    {jdError && <p className="text-xs text-muted-foreground text-center max-w-xs break-words bg-secondary/50 border border-border rounded-lg px-3 py-2">{jdError}</p>}
-                    <button
-                      onClick={() => { setJdState("idle"); setJdError(""); }}
-                      className="px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
-                    >
-                      Try Again
-                    </button>
+                    {jdError && <p className="text-xs text-muted-foreground text-center max-w-xs bg-secondary/50 border border-border rounded-lg px-3 py-2">{jdError}</p>}
+                    <button onClick={() => { setJdState("idle"); setJdError(""); }} className="px-4 py-2 bg-secondary rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors">Try Again</button>
                   </div>
                 )}
               </div>
@@ -415,140 +386,182 @@ function DashboardContent() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="bg-primary/20 p-2 rounded-lg border border-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:bg-primary/30 transition-colors">
-            <Zap className="w-6 h-6 text-primary" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t("dash.title", locale)}</h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              {t("dash.active", locale)}
-            </p>
-          </div>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            {t("dash.title", locale)}
+          </h1>
+          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            {t("dash.active", locale)}
+          </p>
         </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-2 flex-wrap">
           <LanguageSwitcher />
-          <button onClick={() => setJdOpen(true)} className="flex items-center gap-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 px-4 py-2 rounded-full text-sm font-medium hover:bg-purple-500/30 transition-colors">
-            <Briefcase className="w-4 h-4" />
-            {t("dash.postJD", locale)}
+          <button onClick={() => setJdOpen(true)} className="flex items-center gap-2 bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-2 rounded-full text-sm font-medium hover:bg-purple-500/30 transition-colors">
+            <Briefcase className="w-4 h-4" /> {t("dash.postJD", locale)}
           </button>
-          <button onClick={() => setUploadOpen(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-            <Upload className="w-4 h-4" />
-            {t("dash.upload", locale)}
+          <button onClick={() => setBulkUploadOpen(true)} className="flex items-center gap-2 bg-secondary border border-border text-foreground px-3 py-2 rounded-full text-sm font-medium hover:bg-secondary/80 transition-colors">
+            <Upload className="w-4 h-4" /> Bulk Upload
           </button>
-          <UserButton />
+          <button onClick={() => setUploadOpen(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            <Upload className="w-4 h-4" /> {t("dash.upload", locale)}
+          </button>
         </div>
       </header>
 
-      {/* Stats/Filters Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-panel p-6 flex flex-col gap-2 relative overflow-hidden group hover:-translate-y-1 transition-transform">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-panel p-5 flex flex-col gap-1 relative overflow-hidden group hover:-translate-y-1 transition-transform">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="w-4 h-4" />
-            <span className="text-sm font-medium uppercase tracking-wider">{t("dash.totalPool", locale)}</span>
+            <span className="text-xs font-medium uppercase tracking-wider">{t("dash.totalPool", locale)}</span>
           </div>
-          <span className="text-4xl font-bold">{candidates.length.toLocaleString()}</span>
+          <span className="text-3xl font-bold">{candidates.length}</span>
         </motion.div>
-        
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-panel p-6 flex flex-col gap-2 relative overflow-hidden group border-primary/30 bg-primary/5 hover:-translate-y-1 transition-transform shadow-[0_0_30px_rgba(59,130,246,0.05)] cursor-pointer" onClick={() => setShowHiddenGemsOnly(!showHiddenGemsOnly)}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} onClick={() => setShowHiddenGemsOnly(!showHiddenGemsOnly)} className="glass-panel p-5 flex flex-col gap-1 relative overflow-hidden group border-primary/30 bg-primary/5 hover:-translate-y-1 transition-transform cursor-pointer">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="w-4 h-4" />
-              <span className="text-sm font-medium uppercase tracking-wider">{t("dash.hiddenGems", locale)}</span>
+              <span className="text-xs font-medium uppercase tracking-wider">{t("dash.hiddenGems", locale)}</span>
             </div>
-            <div className={`w-10 h-5 rounded-full p-1 transition-colors ${showHiddenGemsOnly ? 'bg-primary' : 'bg-secondary border border-border'}`}>
-              <div className={`w-3 h-3 rounded-full bg-white transition-transform ${showHiddenGemsOnly ? 'translate-x-5' : 'translate-x-0'}`} />
+            <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${showHiddenGemsOnly ? "bg-primary" : "bg-secondary border border-border"}`}>
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${showHiddenGemsOnly ? "translate-x-4" : "translate-x-0"}`} />
             </div>
           </div>
-          <span className="text-4xl font-bold text-foreground">{candidates.filter(c => c.hiddenGemScore && c.hiddenGemScore > 80).length}</span>
-          <p className="text-xs text-primary/80 font-medium">{t("dash.toggleHint", locale)}</p>
-        </motion.div>
-        
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-panel p-6 flex flex-col gap-2 relative overflow-hidden group hover:-translate-y-1 transition-transform">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Activity className="w-4 h-4" />
-            <span className="text-sm font-medium uppercase tracking-wider">{t("dash.avgProcessing", locale)}</span>
-          </div>
-          <span className="text-4xl font-bold">1.2s</span>
+          <span className="text-3xl font-bold">{candidates.filter((c) => c.hiddenGemScore && c.hiddenGemScore > 80).length}</span>
+          <p className="text-xs text-primary/70">{t("dash.toggleHint", locale)}</p>
         </motion.div>
 
-        {/* Search Bar Panel */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-panel p-6 flex flex-col justify-center relative overflow-hidden group hover:-translate-y-1 transition-transform">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/50 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-center gap-2 text-muted-foreground mb-3">
-            <Search className="w-4 h-4" />
-            <span className="text-sm font-medium uppercase tracking-wider">Search Candidates</span>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-panel p-5 flex flex-col gap-1 group hover:-translate-y-1 transition-transform">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Activity className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wider">{t("dash.avgProcessing", locale)}</span>
           </div>
-          <input 
-            type="text" 
-            placeholder="Role, skill, or name..." 
+          <span className="text-3xl font-bold">1.2s</span>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-panel p-5 flex flex-col justify-center group hover:-translate-y-1 transition-transform">
+          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+            <Search className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wider">Search</span>
+          </div>
+          <input
+            type="text"
+            placeholder="Name, role, skill..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 relative z-10"
+            className="w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </motion.div>
       </div>
 
-      {/* Active JD Banner */}
+      {/* Active JD banner */}
       {activeJD && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 flex items-center justify-between">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Briefcase className="w-5 h-5 text-purple-400" />
+            <Briefcase className="w-5 h-5 text-purple-400 shrink-0" />
             <div>
-              <span className="text-sm font-medium text-purple-400">Active Job Description Match</span>
-              <p className="text-xs text-muted-foreground mt-0.5">{activeJD}</p>
+              <span className="text-sm font-medium text-purple-400">Active JD Match</span>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{activeJD}</p>
             </div>
           </div>
-          <button onClick={() => { setMatchResults([]); setActiveJD(""); }} className="text-xs text-muted-foreground hover:text-foreground px-3 py-1 bg-secondary rounded-md">Clear</button>
+          <button onClick={() => { setMatchResults([]); setActiveJD(""); }} className="text-xs text-muted-foreground hover:text-foreground px-3 py-1 bg-secondary rounded-md shrink-0">Clear</button>
         </motion.div>
       )}
 
-      {/* Main Content Area */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-        <div className="flex justify-between items-end mb-6">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
+      {/* Compare bar */}
+      {selectedForCompare.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <GitCompare className="w-5 h-5 text-primary shrink-0" />
+            <span className="text-sm font-medium text-primary">{selectedForCompare.length} candidate{selectedForCompare.length > 1 ? "s" : ""} selected for comparison</span>
+            <span className="text-xs text-muted-foreground">(max 4)</span>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setSelectedForCompare([])} className="text-xs text-muted-foreground hover:text-foreground px-3 py-1 bg-secondary rounded-md">Clear</button>
+            <button
+              onClick={() => setCompareOpen(true)}
+              disabled={selectedForCompare.length < 2}
+              className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              Compare
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Filter + count row */}
+      <div className="flex justify-between items-center mb-5 gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
             {searchQuery ? "Search Results" : t("dash.recommended", locale)}
-            {!searchQuery && <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full border border-primary/30 shadow-[0_0_10px_rgba(59,130,246,0.1)]">{t("dash.aiCurated", locale)}</span>}
-          </h2>
-          <div className="text-sm text-muted-foreground">
-            Showing <span className="text-foreground font-medium">{displayedCandidates.length}</span> candidates
-          </div>
-        </div>
-        
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p>Loading candidates...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {displayedCandidates.map((candidate, idx) => (
-              <motion.div key={candidate.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + (idx * 0.1) }}>
-                <CandidateCard 
-                  candidate={candidate} 
-                  onOpenProofOfWork={handleOpenProofOfWork}
-                  matchResult={matchResults.find(r => r.candidateId === candidate.id)}
-                  rank={matchResults.length > 0 ? idx + 1 : undefined}
-                />
-              </motion.div>
-            ))}
-            {displayedCandidates.length === 0 && (
-              <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-xl">
-                {searchQuery ? "No candidates found matching your search." : t("dash.noResults", locale)}
-              </div>
+            {!searchQuery && (
+              <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full border border-primary/30">{t("dash.aiCurated", locale)}</span>
             )}
+          </h2>
+          <FilterBar filters={filters} onChange={setFilters} allSkills={allSkills} />
+        </div>
+        <div className="text-sm text-muted-foreground shrink-0">
+          <span className="text-foreground font-medium">{displayed.length}</span> candidates
+        </div>
+      </div>
+
+      {/* Candidate list */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-6">
+          {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : displayed.length === 0 ? (
+        <div className="text-center py-20 flex flex-col items-center gap-4 border border-dashed border-border rounded-xl text-muted-foreground">
+          <Users className="w-10 h-10 opacity-30" />
+          <div>
+            <p className="font-medium">No candidates found</p>
+            <p className="text-sm mt-1">
+              {searchQuery || filters.skills.length > 0 || filters.location
+                ? "Try adjusting your search or filters."
+                : "Upload a resume to get started."}
+            </p>
           </div>
-        )}
-      </motion.div>
+          {!searchQuery && (
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium hover:bg-primary/90 transition-colors mt-2"
+            >
+              <Upload className="w-4 h-4" /> Upload First Resume
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5">
+          {displayed.map((candidate, idx) => (
+            <motion.div key={candidate.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * idx }}>
+              <div className="relative group/card">
+                <CandidateCard
+                  candidate={candidate}
+                  onOpenProofOfWork={handleOpenProofOfWork}
+                  matchResult={matchResults.find((r) => r.candidateId === candidate.id)}
+                  rank={matchResults.length > 0 ? idx + 1 : undefined}
+                  isSelected={selectedForCompare.includes(candidate.id)}
+                  onToggleSelect={toggleCompare}
+                />
+                {/* Outreach quick action */}
+                <button
+                  onClick={() => openOutreach(candidate)}
+                  className="absolute top-4 right-4 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center gap-1.5 text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/30"
+                >
+                  <Mail className="w-3.5 h-3.5" /> Outreach
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

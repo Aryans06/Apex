@@ -11,7 +11,6 @@ import { CandidateAvatar } from "@/components/CandidateAvatar";
 import { RadarChart } from "@/components/RadarChart";
 import { OutreachModal } from "@/components/OutreachModal";
 import { useToast } from "@/components/Toast";
-import { ToastProvider } from "@/components/Toast";
 
 interface Note {
   id: string;
@@ -388,9 +387,5 @@ function CandidateProfileContent() {
 }
 
 export default function CandidateProfile() {
-  return (
-    <ToastProvider>
-      <CandidateProfileContent />
-    </ToastProvider>
-  );
+  return <CandidateProfileContent />;
 }
