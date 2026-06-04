@@ -12,7 +12,7 @@ model Candidate {
   name            String
   role            String
   summary         String
-  skills          String       // Stored as comma-separated string
+  skills          String       // comma-separated
   location        String?
   isProcessed     Boolean      @default(false)
   hiddenGemScore  Int?
@@ -20,9 +20,13 @@ model Candidate {
   adjacencyScore  Int?
   githubUrl       String?
   portfolioUrl    String?
-  
+  pipelineStage   String       @default("applied") // applied | screened | interview | offer | hired | rejected
+  redFlags        String?      // JSON string array of flag strings
+  createdAt       DateTime     @default(now())
+
   experiences     Experience[]
   education       Education?
+  notes           CandidateNote[]
 }
 
 model Experience {
@@ -31,8 +35,8 @@ model Experience {
   company     String
   duration    String
   description String
-  bullets     String    // Stored as JSON string
-  
+  bullets     String    // JSON string
+
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
@@ -42,7 +46,23 @@ model Education {
   degree      String
   school      String
   year        String
-  
+
   candidateId String    @unique
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model JobDescription {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  createdAt   DateTime @default(now())
+}
+
+model CandidateNote {
+  id          String    @id @default(uuid())
+  content     String
+  createdAt   DateTime  @default(now())
+
+  candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
