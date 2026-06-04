@@ -27,6 +27,10 @@ export interface Candidate {
   hiddenGemScore?: number;
   trajectoryNotes?: string;
   adjacencyScore?: number;
+  pipelineStage?: string;
+  redFlags?: string[];
+  createdAt?: string;
+  notes?: { id: string; content: string; createdAt: string }[];
 }
 
 export const mockCandidates: Candidate[] = [

@@ -1,73 +1,104 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { ChevronRight, ExternalLink, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, MapPin } from "lucide-react";
+import { ChevronRight, ExternalLink, Sparkles, TrendingUp, CheckCircle2, ShieldCheck, MapPin, AlertTriangle, SquareCheckBig, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { MatchResult } from "@/app/dashboard/page";
 import { useLocale } from "@/lib/locale-context";
 import { t } from "@/lib/i18n";
+import { CandidateAvatar } from "@/components/CandidateAvatar";
 
 interface CandidateCardProps {
   candidate: Candidate;
   onOpenProofOfWork: (candidateId: string, claim: string) => void;
   matchResult?: MatchResult;
   rank?: number;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
-export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank }: CandidateCardProps) {
+export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank, isSelected, onToggleSelect }: CandidateCardProps) {
   const { locale } = useLocale();
   const isHiddenGem = candidate.hiddenGemScore && candidate.hiddenGemScore > 80;
+  const hasRedFlags = candidate.redFlags && candidate.redFlags.length > 0;
 
   return (
     <div className={cn(
       "glass-panel p-6 flex flex-col md:flex-row gap-6 relative overflow-hidden transition-all duration-300 hover:border-primary/50",
       isHiddenGem ? "border-primary/30 bg-primary/5" : "",
-      matchResult?.isShortlisted ? "border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]" : ""
+      matchResult?.isShortlisted ? "border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]" : "",
+      isSelected ? "ring-2 ring-primary/60" : ""
     )}>
       {isHiddenGem && (
-        <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute -right-12 -top-12 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
       )}
       {matchResult?.isShortlisted && (
-        <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
       )}
-      
+
       <div className="flex-1 flex flex-col gap-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
-              {rank !== undefined && (
-                <span className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-lg font-black text-sm",
-                  rank <= 3 ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-purple-400" : "bg-secondary text-muted-foreground border border-border"
-                )}>
-                  #{rank}
-                </span>
-              )}
-              {candidate.name}
-              {matchResult?.isShortlisted && (
-                <span className="flex items-center gap-1 text-xs font-semibold bg-purple-500/20 text-purple-400 px-2 py-1 rounded-md border border-purple-500/30">
-                  <CheckCircle2 className="w-3 h-3" />
-                  {t("card.shortlisted", locale)}
-                </span>
-              )}
-              {isHiddenGem && (
-                <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2 py-1 rounded-md border border-primary/30">
-                  <Sparkles className="w-3 h-3" />
-                  {t("card.hiddenGem", locale)}
-                </span>
-              )}
-            </h3>
-            <p className="text-muted-foreground mt-1 flex items-center gap-2">
-              {candidate.role} 
-              {candidate.location && (
-                <span className="flex items-center gap-1 text-xs">
-                  <MapPin className="w-3 h-3" /> {candidate.location}
-                </span>
-              )}
-            </p>
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Comparison checkbox */}
+            {onToggleSelect && (
+              <button
+                onClick={() => onToggleSelect(candidate.id)}
+                className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                title={isSelected ? "Remove from compare" : "Add to compare"}
+              >
+                {isSelected
+                  ? <SquareCheckBig className="w-4 h-4 text-primary" />
+                  : <Square className="w-4 h-4" />
+                }
+              </button>
+            )}
+
+            {/* Avatar */}
+            <CandidateAvatar name={candidate.name} size="md" />
+
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold flex items-center gap-2 flex-wrap">
+                {rank !== undefined && (
+                  <span className={cn(
+                    "flex items-center justify-center w-7 h-7 rounded-lg font-black text-xs shrink-0",
+                    rank <= 3 ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] border border-purple-400" : "bg-secondary text-muted-foreground border border-border"
+                  )}>
+                    #{rank}
+                  </span>
+                )}
+                <span className="truncate">{candidate.name}</span>
+                {matchResult?.isShortlisted && (
+                  <span className="flex items-center gap-1 text-xs font-semibold bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-md border border-purple-500/30 shrink-0">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {t("card.shortlisted", locale)}
+                  </span>
+                )}
+                {isHiddenGem && (
+                  <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-2 py-0.5 rounded-md border border-primary/30 shrink-0">
+                    <Sparkles className="w-3 h-3" />
+                    {t("card.hiddenGem", locale)}
+                  </span>
+                )}
+                {hasRedFlags && (
+                  <span className="flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-md border border-amber-500/30 shrink-0">
+                    <AlertTriangle className="w-3 h-3" />
+                    Red Flags
+                  </span>
+                )}
+              </h3>
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
+                {candidate.role}
+                {candidate.location && (
+                  <span className="flex items-center gap-1 text-xs">
+                    <MapPin className="w-3 h-3" /> {candidate.location}
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex gap-2 shrink-0 flex-wrap justify-end">
             {candidate.skills.slice(0, 3).map(skill => (
               <span key={skill} className="text-xs bg-secondary px-2 py-1 rounded text-secondary-foreground border border-border">
                 {skill}
@@ -80,6 +111,21 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank 
             )}
           </div>
         </div>
+
+        {/* Red Flags */}
+        {hasRedFlags && (
+          <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg px-4 py-3 flex gap-3 items-start">
+            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Potential Red Flags</span>
+              <ul className="list-disc list-inside space-y-0.5">
+                {candidate.redFlags!.map((flag, i) => (
+                  <li key={i} className="text-xs text-amber-300/80">{flag}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* JD Match Result Section */}
         {matchResult && (
@@ -116,7 +162,7 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank 
               </div>
             </div>
             <p className="text-sm text-foreground/80 italic border-l-2 border-purple-500/50 pl-3">
-              "{matchResult.reasoning}"
+              &quot;{matchResult.reasoning}&quot;
             </p>
           </div>
         )}
@@ -149,9 +195,7 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank 
                   <span className="font-semibold">{exp.role}</span>
                   <span className="text-muted-foreground">{exp.duration}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                  <span>{exp.company}</span>
-                </div>
+                <div className="text-xs text-muted-foreground">{exp.company}</div>
                 {exp.bullets.length > 0 && (
                   <div className="group flex items-start gap-2 mt-1 bg-secondary/20 p-2 rounded border border-border/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => onOpenProofOfWork(candidate.id, exp.bullets[0])}>
                     <ChevronRight className="w-4 h-4 mt-0.5 text-primary/50 group-hover:text-primary shrink-0" />
