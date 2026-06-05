@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, LayoutDashboard, KanbanSquare, BarChart3, Briefcase, User } from "lucide-react";
+import { LayoutDashboard, KanbanSquare, BarChart3, Briefcase, User } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { ApexLogo } from "@/components/ApexLogo";
 
 const navItems = [
   { href: "/dashboard", label: "Candidates", icon: LayoutDashboard, exact: true },
@@ -20,14 +21,8 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-[220px] flex flex-col bg-background border-r border-border z-40">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-6 border-b border-border shrink-0">
-        <div className="bg-primary/20 p-2 rounded-lg border border-primary/30 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-          <Zap className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <span className="font-bold text-base tracking-tight">Apex</span>
-          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">ATS for Bharat</p>
-        </div>
+      <div className="px-5 py-6 border-b border-border shrink-0">
+        <ApexLogo showSubtitle size="md" />
       </div>
 
       {/* Nav */}

@@ -1,6 +1,7 @@
 "use client";
 
-import { Sparkles, ArrowRight, Zap, Shield, TrendingUp, Briefcase, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Shield, TrendingUp, Briefcase, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { ApexLogo } from "@/components/ApexLogo";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
@@ -292,12 +293,7 @@ function LandingContent() {
         transition={{ duration: 0.5 }}
         className="relative z-10 flex justify-between items-center px-8 md:px-16 py-6"
       >
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/20 p-1.5 rounded-lg border border-primary/30">
-            <Zap className="w-5 h-5 text-primary" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">Apex</span>
-        </div>
+        <ApexLogo size="lg" />
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground hidden md:block">
             {t("landing.builtFor", locale)}
@@ -503,10 +499,7 @@ function LandingContent() {
       {/* Footer */}
       <footer className="relative z-10 border-t border-border py-8 px-8 md:px-16">
         <div className="flex justify-between items-center max-w-6xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Apex</span>
-          </div>
+          <ApexLogo size="sm" />
           <span className="text-xs text-muted-foreground">
             {t("landing.footer", locale)}
           </span>
