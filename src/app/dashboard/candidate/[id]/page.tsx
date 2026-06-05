@@ -197,14 +197,14 @@ function CandidateProfileContent() {
                 </div>
               )}
               <div className="flex items-center gap-3 text-muted-foreground">
-                <GraduationCap className="w-4 h-4" /> {candidate.education.degree}, {candidate.education.school}
+                <GraduationCap className="w-4 h-4" /> {candidate.education[0]?.degree}, {candidate.education[0]?.institution}
               </div>
             </div>
 
             <div className="mt-8 pt-8 border-t border-border flex flex-wrap gap-2">
               {candidate.skills.map(skill => (
-                <span key={skill} className="bg-secondary/50 border border-border px-3 py-1 rounded-full text-xs font-medium">
-                  {skill}
+                <span key={skill.name} className="bg-secondary/50 border border-border px-3 py-1 rounded-full text-xs font-medium">
+                  {skill.name}
                 </span>
               ))}
             </div>

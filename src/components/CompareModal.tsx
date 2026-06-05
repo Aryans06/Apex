@@ -109,7 +109,7 @@ export function CompareModal({ candidates, onClose }: CompareModalProps) {
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Education</p>
                       <div className="flex items-start gap-2 text-xs text-foreground/80">
                         <GraduationCap className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
-                        <span>{c.education.degree}, {c.education.school} ({c.education.year})</span>
+                        <span>{c.education[0]?.degree}, {c.education[0]?.institution} ({c.education[0]?.endYear})</span>
                       </div>
                     </div>
 
@@ -118,7 +118,7 @@ export function CompareModal({ candidates, onClose }: CompareModalProps) {
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Skills</p>
                       <div className="flex flex-wrap gap-1">
                         {c.skills.map((s) => (
-                          <span key={s} className="text-[10px] bg-secondary border border-border px-2 py-0.5 rounded">{s}</span>
+                          <span key={s.name} className="text-[10px] bg-secondary border border-border px-2 py-0.5 rounded">{s.name}</span>
                         ))}
                       </div>
                     </div>

@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
   const skillMap: Record<string, number> = {};
   for (const c of candidates) {
     for (const s of c.skills) {
-      skillMap[s] = (skillMap[s] || 0) + 1;
+      skillMap[s.name] = (skillMap[s.name] || 0) + 1;
     }
   }
   const topSkills = Object.entries(skillMap).sort((a, b) => b[1] - a[1]).slice(0, 8);

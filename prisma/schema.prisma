@@ -8,60 +8,78 @@ datasource db {
 }
 
 model Candidate {
-  id              String       @id @default(uuid())
-  name            String
-  role            String
-  summary         String
-  skills          String       // comma-separated
-  location        String?
-  isProcessed     Boolean      @default(false)
-  hiddenGemScore  Int?
-  trajectoryNotes String?
-  adjacencyScore  Int?
-  githubUrl       String?
-  portfolioUrl    String?
-  pipelineStage   String       @default("applied") // applied | screened | interview | offer | hired | rejected
-  redFlags        String?      // JSON string array of flag strings
-  createdAt       DateTime     @default(now())
+  id                String   @id @default(uuid())
+  candidateId       String?  @unique  // CAND_XXXXXXX from dataset
+  name              String
+  headline          String?
+  role              String   // current_title
+  summary           String
+  skills            String   // JSON array: [{name, proficiency, endorsements, duration_months}]
+  location          String?
+  country           String?
+  isProcessed       Boolean  @default(false)
+  yearsOfExperience Float?
+  currentCompany    String?
+  currentCompanySize String?
+  currentIndustry   String?
+  hiddenGemScore    Int?
+  trajectoryNotes   String?
+  adjacencyScore    Int?
+  githubUrl         String?
+  portfolioUrl      String?
+  pipelineStage     String   @default("applied")
+  redFlags          String?  // JSON string array
+  redrobSignals     String?  // JSON blob of all 23 behavioral signals
+  createdAt         DateTime @default(now())
 
-  experiences     Experience[]
-  education       Education?
-  notes           CandidateNote[]
+  experiences  Experience[]
+  education    EducationRecord[]
+  notes        CandidateNote[]
 }
 
 model Experience {
-  id          String    @id @default(uuid())
-  role        String
-  company     String
-  duration    String
-  description String
-  bullets     String    // JSON string
+  id             String   @id @default(uuid())
+  role           String
+  company        String
+  duration       String   // human-readable display string, e.g. "2022–2024"
+  startDate      String?
+  endDate        String?
+  durationMonths Int?
+  isCurrent      Boolean  @default(false)
+  industry       String?
+  companySize    String?
+  description    String
+  bullets        String   // JSON string array
 
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
 
-model Education {
-  id          String    @id @default(uuid())
-  degree      String
-  school      String
-  year        String
+model EducationRecord {
+  id           String @id @default(uuid())
+  institution  String
+  degree       String
+  fieldOfStudy String?
+  startYear    Int?
+  endYear      Int?
+  grade        String?
+  tier         String? // tier_1 | tier_2 | tier_3 | tier_4 | unknown
 
-  candidateId String    @unique
+  candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
 
 model JobDescription {
-  id          String   @id @default(uuid())
-  title       String
-  content     String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
 }
 
 model CandidateNote {
-  id          String    @id @default(uuid())
-  content     String
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
 
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)

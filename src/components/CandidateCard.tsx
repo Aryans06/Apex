@@ -100,8 +100,8 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank,
 
           <div className="flex gap-2 shrink-0 flex-wrap justify-end">
             {candidate.skills.slice(0, 3).map(skill => (
-              <span key={skill} className="text-xs bg-secondary px-2 py-1 rounded text-secondary-foreground border border-border">
-                {skill}
+              <span key={skill.name} className="text-xs bg-secondary px-2 py-1 rounded text-secondary-foreground border border-border">
+                {skill.name}
               </span>
             ))}
             {candidate.skills.length > 3 && (

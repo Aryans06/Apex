@@ -183,7 +183,7 @@ function DashboardContent() {
       const matches =
         c.name.toLowerCase().includes(q) ||
         c.role.toLowerCase().includes(q) ||
-        c.skills.some((s) => s.toLowerCase().includes(q));
+        c.skills.some((s) => s.name.toLowerCase().includes(q));
       if (!matches) return false;
     }
     if (filters.location.trim()) {
@@ -191,7 +191,7 @@ function DashboardContent() {
     }
     if (filters.skills.length > 0) {
       const hasAll = filters.skills.every((fs) =>
-        c.skills.some((s) => s.toLowerCase().includes(fs.toLowerCase()))
+        c.skills.some((s) => s.name.toLowerCase().includes(fs.toLowerCase()))
       );
       if (!hasAll) return false;
     }
@@ -218,7 +218,7 @@ function DashboardContent() {
     ? filtered.filter((c) => c.hiddenGemScore && c.hiddenGemScore > 80)
     : filtered;
 
-  const allSkills = [...new Set(candidates.flatMap((c) => c.skills))].sort();
+  const allSkills = [...new Set(candidates.flatMap((c) => c.skills.map(s => s.name)))].sort();
 
   return (
     <main className="min-h-screen p-8 md:p-10 max-w-5xl mx-auto relative dot-grid">
