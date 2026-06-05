@@ -61,14 +61,22 @@ const fadeUp = {
 };
 
 function FloatingParticles() {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 3 + 1,
-    duration: Math.random() * 15 + 10,
-    delay: Math.random() * 8,
-  }));
+  const [particles, setParticles] = useState<
+    { id: number; x: number; y: number; size: number; duration: number; delay: number }[]
+  >([]);
+
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 3 + 1,
+        duration: Math.random() * 15 + 10,
+        delay: Math.random() * 8,
+      }))
+    );
+  }, []);
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
