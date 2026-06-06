@@ -9,46 +9,106 @@ import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-contex
 import { t } from "@/lib/i18n";
 import { SignInButton, useUser } from "@clerk/nextjs";
 
-const typewriterWords = [
-  "Skill Adjacency",
-  "Career Velocity", 
-  "Proof of Work",
-  "Hidden Gems",
-  "True Potential",
-];
-
-function TypewriterText() {
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [currentText, setCurrentText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
+function LiveCandidateCard() {
+  const [gemScore, setGemScore] = useState(0);
+  const [adjScore, setAdjScore] = useState(0);
 
   useEffect(() => {
-    const word = typewriterWords[currentWordIndex];
-    const timeout = setTimeout(
-      () => {
-        if (!isDeleting) {
-          setCurrentText(word.substring(0, currentText.length + 1));
-          if (currentText.length === word.length) {
-            setTimeout(() => setIsDeleting(true), 1500);
-          }
-        } else {
-          setCurrentText(word.substring(0, currentText.length - 1));
-          if (currentText.length === 0) {
-            setIsDeleting(false);
-            setCurrentWordIndex((prev) => (prev + 1) % typewriterWords.length);
-          }
-        }
-      },
-      isDeleting ? 50 : 100
-    );
-    return () => clearTimeout(timeout);
-  }, [currentText, isDeleting, currentWordIndex]);
+    const delay = setTimeout(() => {
+      const interval = setInterval(() => {
+        setGemScore((prev) => {
+          if (prev >= 91) { clearInterval(interval); return 91; }
+          return prev + 2;
+        });
+        setAdjScore((prev) => Math.min(prev + 2, 84));
+      }, 18);
+      return () => clearInterval(interval);
+    }, 700);
+    return () => clearTimeout(delay);
+  }, []);
 
   return (
-    <span className="text-primary">
-      {currentText}
-      <span className="animate-pulse">|</span>
-    </span>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: 0.5 }}
+      className="glass-panel w-full max-w-lg text-left border-primary/20 overflow-hidden"
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/40">
+        <span className="text-xs text-muted-foreground font-mono">apex://candidate-match</span>
+        <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+          </span>
+          Live
+        </span>
+      </div>
+
+      <div className="p-4 flex gap-4 items-start">
+        {/* Avatar + meta */}
+        <div className="shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/40 to-purple-500/40 flex items-center justify-center text-sm font-bold text-primary border border-primary/30">
+            RK
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div>
+              <span className="text-sm font-semibold">Ravi Kumar</span>
+              <span className="text-xs text-muted-foreground ml-2">Full-Stack Dev · 4 yrs</span>
+            </div>
+            <span className="shrink-0 text-xs bg-primary/10 border border-primary/25 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" /> Hidden Gem
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">Indore, MP</span>
+            <span className="text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">Self-taught</span>
+            {["React", "Node.js", "Postgres"].map((s) => (
+              <span key={s} className="text-xs bg-secondary/60 px-2 py-0.5 rounded-full text-muted-foreground">{s}</span>
+            ))}
+          </div>
+
+          {/* Score bars */}
+          <div className="space-y-2">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">Hidden Gem Score</span>
+                <span className="font-bold tabular-nums text-primary">{gemScore}</span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-purple-400"
+                  animate={{ width: `${gemScore}%` }}
+                  transition={{ ease: "easeOut" }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">Skill Adjacency</span>
+                <span className="font-bold tabular-nums text-emerald-400">{adjScore}</span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+                  animate={{ width: `${adjScore}%` }}
+                  transition={{ ease: "easeOut" }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pb-3 text-xs text-muted-foreground italic border-t border-border pt-2.5 bg-secondary/20">
+        Rejected by 3 keyword-based ATS systems — surfaced by Apex as top 4%
+      </div>
+    </motion.div>
   );
 }
 
@@ -316,9 +376,9 @@ function LandingContent() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-2xl md:text-3xl font-semibold h-12 mb-10"
+          className="w-full max-w-lg mb-6"
         >
-          <TypewriterText />
+          <LiveCandidateCard />
         </motion.div>
 
         <motion.div
