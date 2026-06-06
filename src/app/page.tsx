@@ -331,7 +331,7 @@ function LandingContent() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 flex justify-between items-center px-8 md:px-16 py-6"
+        className="relative z-30 flex justify-between items-center px-8 md:px-16 py-6"
       >
         <ApexLogo size="lg" />
         <div className="flex items-center gap-4">
