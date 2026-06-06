@@ -68,9 +68,15 @@ function DashboardContent() {
   const [outreachCandidate, setOutreachCandidate] = useState<Candidate | null>(null);
 
   // Filters + search
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   // Fetch candidates
   useEffect(() => {
@@ -454,8 +460,8 @@ function DashboardContent() {
           <input
             type="text"
             placeholder="Name, role, skill..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </motion.div>
