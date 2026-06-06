@@ -12,6 +12,15 @@ import { RadarChart } from "@/components/RadarChart";
 import { OutreachModal } from "@/components/OutreachModal";
 import { useToast } from "@/components/Toast";
 
+const STAGES = [
+  { id: "applied",   label: "Applied",   color: "text-zinc-400",    bg: "bg-zinc-400/10",    border: "border-zinc-500/40" },
+  { id: "screened",  label: "Screened",  color: "text-blue-400",    bg: "bg-blue-400/10",    border: "border-blue-500/40" },
+  { id: "interview", label: "Interview", color: "text-violet-400",  bg: "bg-violet-400/10",  border: "border-violet-500/40" },
+  { id: "offer",     label: "Offer",     color: "text-amber-400",   bg: "bg-amber-400/10",   border: "border-amber-500/40" },
+  { id: "hired",     label: "Hired",     color: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-500/40" },
+  { id: "rejected",  label: "Rejected",  color: "text-red-400",     bg: "bg-red-400/10",     border: "border-red-500/40" },
+];
+
 interface Note {
   id: string;
   content: string;
@@ -46,6 +55,8 @@ function CandidateProfileContent() {
   const [deletingCandidate, setDeletingCandidate] = useState(false);
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
   const [expandedAssessment, setExpandedAssessment] = useState<string | null>(null);
+  const [currentStage, setCurrentStage] = useState<string>("applied");
+  const [updatingStage, setUpdatingStage] = useState(false);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -54,6 +65,7 @@ function CandidateProfileContent() {
         if (res.ok) {
           const data = await res.json();
           setCandidate(data);
+          setCurrentStage(data.pipelineStage || "applied");
           setNotes(data.notes || []);
         }
       } catch {
@@ -121,6 +133,26 @@ function CandidateProfileContent() {
 
   const isHiddenGem = candidate?.hiddenGemScore && candidate.hiddenGemScore > 80;
   const hasRedFlags = candidate?.redFlags && candidate.redFlags.length > 0;
+
+  const updateStage = async (stage: string) => {
+    const prev = currentStage;
+    setCurrentStage(stage);
+    setUpdatingStage(true);
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/stage`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage }),
+      });
+      if (!res.ok) throw new Error();
+      toast(`Stage updated to ${STAGES.find((s) => s.id === stage)?.label}`, "success");
+    } catch {
+      setCurrentStage(prev);
+      toast("Failed to update stage", "error");
+    } finally {
+      setUpdatingStage(false);
+    }
+  };
 
   const handleDeleteCandidate = async () => {
     setDeletingCandidate(true);
@@ -255,7 +287,32 @@ function CandidateProfileContent() {
                 </span>
               )}
             </h1>
-            <p className="text-muted-foreground text-lg mb-6">{candidate.role}</p>
+            <p className="text-muted-foreground text-lg mb-4">{candidate.role}</p>
+
+            {/* Pipeline stage selector */}
+            <div className="mb-6">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">Pipeline Stage</p>
+              <div className="relative">
+                <select
+                  value={currentStage}
+                  onChange={(e) => updateStage(e.target.value)}
+                  disabled={updatingStage}
+                  className={`w-full appearance-none rounded-lg px-3 py-2 text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors cursor-pointer disabled:opacity-60 ${STAGES.find((s) => s.id === currentStage)?.bg ?? ""} ${STAGES.find((s) => s.id === currentStage)?.color ?? ""} ${STAGES.find((s) => s.id === currentStage)?.border ?? "border-border"} bg-secondary/30`}
+                >
+                  {STAGES.map((s) => (
+                    <option key={s.id} value={s.id} className="bg-background text-foreground">
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                  {updatingStage
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                    : <span className="text-muted-foreground text-xs">▾</span>
+                  }
+                </div>
+              </div>
+            </div>
 
             <div className="flex flex-col gap-4 text-sm">
               {candidate.location && (
