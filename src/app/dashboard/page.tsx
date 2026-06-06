@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle, GitCompare, Mail } from "lucide-react";
+import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle, GitCompare, Mail, Download } from "lucide-react";
 import { CandidateCard } from "@/components/CandidateCard";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
@@ -225,6 +225,47 @@ function DashboardContent() {
     : filtered;
 
   const allSkills = [...new Set(candidates.flatMap((c) => c.skills.map(s => s.name)))].sort();
+
+  const exportCSV = () => {
+    const hasMatch = matchResults.length > 0;
+    const headers = [
+      "Name", "Role", "Location", "Hidden Gem Score", "Adjacency Score",
+      ...(hasMatch ? ["Overall Match", "Technical Fit", "Trajectory Fit", "Cultural Fit", "Shortlisted", "Reasoning"] : []),
+      "Skills", "Summary",
+    ];
+    const escape = (v: string | number | boolean | undefined | null) => {
+      const s = String(v ?? "").replace(/"/g, '""');
+      return `"${s}"`;
+    };
+    const rows = displayed.map((c) => {
+      const m = matchResults.find((r) => r.candidateId === c.id);
+      return [
+        escape(c.name),
+        escape(c.role),
+        escape(c.location),
+        escape(c.hiddenGemScore),
+        escape(c.adjacencyScore),
+        ...(hasMatch ? [
+          escape(m?.overallScore),
+          escape(m?.technicalFit),
+          escape(m?.trajectoryFit),
+          escape(m?.culturalFit),
+          escape(m?.isShortlisted ? "Yes" : "No"),
+          escape(m?.reasoning),
+        ] : []),
+        escape(c.skills.map(s => s.name).join(", ")),
+        escape(c.summary),
+      ].join(",");
+    });
+    const csv = [headers.map(escape).join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `apex-candidates-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <main className="min-h-screen p-8 md:p-10 max-w-5xl mx-auto relative dot-grid">
@@ -513,8 +554,19 @@ function DashboardContent() {
           </h2>
           <FilterBar filters={filters} onChange={setFilters} allSkills={allSkills} />
         </div>
-        <div className="text-sm text-muted-foreground shrink-0">
-          <span className="text-foreground font-medium">{displayed.length}</span> candidates
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-sm text-muted-foreground">
+            <span className="text-foreground font-medium">{displayed.length}</span> candidates
+          </span>
+          {displayed.length > 0 && (
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-1.5 rounded-lg transition-colors"
+              title="Export displayed candidates as CSV"
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </button>
+          )}
         </div>
       </div>
 
