@@ -3,7 +3,7 @@
 import { Sparkles, ArrowRight, Briefcase, FileText, Loader2, CheckCircle2, XCircle, CheckCircle } from "lucide-react";
 import { ApexLogo } from "@/components/ApexLogo";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { LocaleProvider, useLocale, LanguageSwitcher } from "@/lib/locale-context";
 import { t } from "@/lib/i18n";
@@ -144,6 +144,39 @@ const fadeUp = {
   }),
 };
 
+
+function CountUpStat({ target, decimals = 0, suffix, label }: { target: number; decimals?: number; suffix: string; label: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    const steps = 60;
+    const stepMs = 1400 / steps;
+    const increment = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + increment, target);
+      setCount(current);
+      if (current >= target) clearInterval(timer);
+    }, stepMs);
+    return () => clearInterval(timer);
+  }, [isInView, target]);
+
+  const formatted = target >= 1000
+    ? Math.floor(count).toLocaleString()
+    : decimals > 0
+    ? count.toFixed(decimals)
+    : Math.floor(count).toString();
+
+  return (
+    <div ref={ref} className="text-center">
+      <div className="text-2xl md:text-3xl font-bold tabular-nums">{formatted}{suffix}</div>
+      <div className="text-sm text-muted-foreground mt-1">{label}</div>
+    </div>
+  );
+}
 
 function LandingContent() {
   const { locale } = useLocale();
@@ -421,20 +454,9 @@ function LandingContent() {
           animate="visible"
           className="flex gap-12 mt-20 text-center"
         >
-          {[
-            { value: "12,000+", label: t("landing.statsGems", locale) },
-            { value: "40%", label: t("landing.statsFaster", locale) },
-            { value: "3.2s", label: t("landing.statsTime", locale) },
-          ].map((stat) => (
-            <div key={stat.value}>
-              <div className="text-2xl md:text-3xl font-bold">
-                {stat.value}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {stat.label}
-              </div>
-            </div>
-          ))}
+          <CountUpStat target={12000} suffix="+" label={t("landing.statsGems", locale)} />
+          <CountUpStat target={40} suffix="%" label={t("landing.statsFaster", locale)} />
+          <CountUpStat target={3.2} decimals={1} suffix="s" label={t("landing.statsTime", locale)} />
         </motion.div>
       </section>
 
