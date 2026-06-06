@@ -574,13 +574,49 @@ function LandingContent() {
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-border py-8 px-8 md:px-16">
-        <div className="flex justify-between items-center max-w-6xl mx-auto">
-          <ApexLogo size="sm" />
-          <span className="text-xs text-muted-foreground">
-            {t("landing.footer", locale)}
-          </span>
+      {/* Footer CTA */}
+      <footer className="relative z-10 border-t border-border">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="px-8 md:px-16 py-24 max-w-4xl mx-auto text-center"
+        >
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-6">The bottom line</p>
+          <h2 className="text-3xl md:text-5xl font-bold leading-tight mb-6">
+            Built for the{" "}
+            <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">95%</span>{" "}
+            of Indian engineers<br className="hidden md:block" /> that keyword-based ATS never sees.
+          </h2>
+          <p className="text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">
+            Every Tier-2 city has engineers doing extraordinary work in obscurity.
+            Apex finds them before your competitors do.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+            >
+              Start finding hidden gems <ArrowRight className="w-4 h-4" />
+            </Link>
+            <button
+              onClick={() => {
+                const el = document.getElementById("how-it-works");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+            >
+              See how it works
+            </button>
+          </div>
+        </motion.div>
+
+        <div className="border-t border-border py-6 px-8 md:px-16">
+          <div className="flex justify-between items-center max-w-6xl mx-auto">
+            <ApexLogo size="sm" />
+            <span className="text-xs text-muted-foreground">{t("landing.footer", locale)}</span>
+          </div>
         </div>
       </footer>
     </div>
