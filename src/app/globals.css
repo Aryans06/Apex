@@ -26,6 +26,11 @@
   }
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 @layer utilities {
   .glass-panel {
     @apply bg-secondary/30 backdrop-blur-md border border-border rounded-xl shadow-lg;
@@ -34,5 +39,9 @@
   .dot-grid {
     background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
     background-size: 28px 28px;
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
   }
 }

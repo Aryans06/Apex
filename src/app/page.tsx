@@ -112,6 +112,29 @@ function LiveCandidateCard() {
   );
 }
 
+const CITIES = [
+  "Lucknow", "Indore", "Coimbatore", "Bhubaneswar", "Nagpur",
+  "Surat", "Mysore", "Visakhapatnam", "Jaipur", "Chandigarh",
+  "Kochi", "Dehradun", "Varanasi", "Raipur", "Guwahati",
+  "Patna", "Vadodara", "Agra", "Rajkot", "Madurai",
+];
+
+function CityMarquee() {
+  const items = [...CITIES, ...CITIES];
+  return (
+    <div className="relative z-10 overflow-hidden border-y border-border/50 py-2 bg-secondary/10">
+      <div className="flex animate-marquee whitespace-nowrap" style={{ width: "max-content" }}>
+        {items.map((city, i) => (
+          <span key={i} className="inline-flex items-center gap-3 mx-4 text-xs text-muted-foreground/60 font-mono tracking-wider uppercase">
+            {city}
+            <span className="text-border">·</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i: number) => ({
@@ -327,6 +350,8 @@ function LandingContent() {
           )}
         </div>
       </motion.nav>
+
+      <CityMarquee />
 
       {/* Hero */}
       <section className="relative z-10 flex flex-col items-center text-center px-8 pt-20 md:pt-32 pb-20">
