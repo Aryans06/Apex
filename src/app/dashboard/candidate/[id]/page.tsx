@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap, Loader2, AlertTriangle, Mail, StickyNote, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap, Loader2, AlertTriangle, Mail, StickyNote, Send, Trash2, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
@@ -147,12 +147,23 @@ function CandidateProfileContent() {
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to Dashboard
         </Link>
-        <button
-          onClick={() => setOutreachOpen(true)}
-          className="flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-full text-sm font-medium hover:bg-emerald-500/30 transition-colors"
-        >
-          <Mail className="w-4 h-4" /> Draft Outreach Email
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              const claim = candidate?.experience[0]?.bullets[0] || candidate?.experience[0]?.description || candidate?.summary || "";
+              handleOpenProofOfWork(claim);
+            }}
+            className="flex items-center gap-2 bg-primary/20 text-primary border border-primary/30 px-4 py-2 rounded-full text-sm font-medium hover:bg-primary/30 transition-colors"
+          >
+            <ClipboardList className="w-4 h-4" /> Generate Assessment
+          </button>
+          <button
+            onClick={() => setOutreachOpen(true)}
+            className="flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-2 rounded-full text-sm font-medium hover:bg-emerald-500/30 transition-colors"
+          >
+            <Mail className="w-4 h-4" /> Draft Outreach Email
+          </button>
+        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
