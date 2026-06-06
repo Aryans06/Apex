@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { X, Mail, Loader2, Copy, CheckCircle2, CalendarPlus } from "lucide-react";
 import { Candidate } from "@/lib/data";
 import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
@@ -20,12 +20,38 @@ interface OutreachModalProps {
   candidate: Candidate | null;
 }
 
+function buildCalendarLink(candidateName: string, date: string, time: string, duration: number) {
+  // date: YYYY-MM-DD, time: HH:MM, duration: minutes
+  const start = new Date(`${date}T${time}:00`);
+  const end = new Date(start.getTime() + duration * 60 * 1000);
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Interview with ${candidateName}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: `Technical interview scheduled via Apex ATS`,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 export function OutreachModal({ isOpen, onClose, candidate }: OutreachModalProps) {
   const [emailType, setEmailType] = useState("intro");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{ subject: string; body: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [slotDate, setSlotDate] = useState("");
+  const [slotTime, setSlotTime] = useState("10:00");
+  const [slotDuration, setSlotDuration] = useState(60);
   const { toast } = useToast();
+
+  const slotLink = slotDate && slotTime && candidate
+    ? buildCalendarLink(candidate.name, slotDate, slotTime, slotDuration)
+    : null;
+
+  const slotLabel = slotDate
+    ? `${new Date(`${slotDate}T${slotTime}`).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })} (${slotDuration} min)`
+    : null;
 
   const generate = async () => {
     if (!candidate) return;
@@ -41,6 +67,8 @@ export function OutreachModal({ isOpen, onClose, candidate }: OutreachModalProps
           candidateSummary: candidate.summary,
           emailType,
           recruiterName: "The Hiring Team",
+          slotLink,
+          slotLabel,
         }),
       });
       if (!res.ok) throw new Error();
@@ -64,6 +92,9 @@ export function OutreachModal({ isOpen, onClose, candidate }: OutreachModalProps
   const handleClose = () => {
     setResult(null);
     setEmailType("intro");
+    setSlotDate("");
+    setSlotTime("10:00");
+    setSlotDuration(60);
     onClose();
   };
 
@@ -111,6 +142,48 @@ export function OutreachModal({ isOpen, onClose, candidate }: OutreachModalProps
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Interview slot picker */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                  <CalendarPlus className="w-3.5 h-3.5" /> Interview Slot <span className="font-normal text-muted-foreground/60 normal-case tracking-normal">(optional)</span>
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    type="date"
+                    value={slotDate}
+                    min={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => { setSlotDate(e.target.value); setResult(null); }}
+                    className="flex-1 min-w-[130px] bg-secondary/50 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                  <input
+                    type="time"
+                    value={slotTime}
+                    onChange={(e) => { setSlotTime(e.target.value); setResult(null); }}
+                    className="w-28 bg-secondary/50 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                  <select
+                    value={slotDuration}
+                    onChange={(e) => { setSlotDuration(Number(e.target.value)); setResult(null); }}
+                    className="bg-secondary/50 border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min</option>
+                    <option value={90}>90 min</option>
+                  </select>
+                </div>
+                {slotLink && (
+                  <a
+                    href={slotLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 flex items-center gap-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  >
+                    <CalendarPlus className="w-3.5 h-3.5" /> Preview slot in Google Calendar
+                  </a>
+                )}
               </div>
 
               {/* Generate button */}

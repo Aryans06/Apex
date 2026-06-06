@@ -5,7 +5,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(req: Request) {
   try {
-    const { candidateName, candidateRole, candidateSummary, emailType, recruiterName } = await req.json();
+    const { candidateName, candidateRole, candidateSummary, emailType, recruiterName, slotLink, slotLabel } = await req.json();
 
     if (!candidateName || !emailType) {
       return NextResponse.json({ error: "candidateName and emailType required" }, { status: 400 });
@@ -22,6 +22,10 @@ export async function POST(req: Request) {
       interview: "Write a concise interview invitation email with a professional but friendly tone, asking for their availability.",
     };
 
+    const slotInstruction = slotLink
+      ? `\n\nInclude the following interview slot in the email body. Place the link naturally in the text (e.g. "Please use this link to add the interview slot to your calendar: ${slotLabel || slotLink}"). Do not alter or shorten the link.`
+      : "";
+
     const prompt = `You are a senior recruiter writing a ${emailType} email.
 
 Candidate: ${candidateName}
@@ -29,7 +33,7 @@ Role: ${candidateRole || "Software Engineer"}
 Background: ${candidateSummary || "Experienced developer"}
 Recruiter name: ${recruiterName || "The Hiring Team"}
 
-${typeInstructions[emailType] || typeInstructions.intro}
+${typeInstructions[emailType] || typeInstructions.intro}${slotInstruction}
 
 Return ONLY a JSON object with these fields:
 {
