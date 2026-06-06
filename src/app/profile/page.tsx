@@ -126,9 +126,14 @@ function ProfileContent() {
                   </div>
                 )}
                 {profile.links.github && (
-                  <div className="flex items-center gap-3 text-foreground hover:text-primary transition-colors">
+                  <a
+                    href={profile.links.github.startsWith("http") ? profile.links.github : `https://${profile.links.github}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
+                  >
                     <Link2 className="w-4 h-4" /> {profile.links.github}
-                  </div>
+                  </a>
                 )}
                 {profile.education[0]?.degree && (
                   <div className="flex items-center gap-3 text-muted-foreground">
