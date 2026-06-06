@@ -116,9 +116,7 @@ export async function GET() {
       const raw = 0.40 * skillScore + 0.25 * scoreExperience({ ...c, experiences: c.experiences }) + 0.25 * scoreBehavioral(signals) + 0.10 * scoreEducation(c.education);
       const score = Math.round(raw * tMult * 10000) / 10000;
       const resp = signals?.recruiter_response_rate ?? 0;
-      const top3 = matched.slice(0, 3).join(", ") || "none";
-      const loc = [c.location, c.country].filter(Boolean).join(", ");
-      const reasoning = `${c.role} with ${yoe.toFixed(1)} yrs; ${matched.length} core skill groups (${top3}); response rate ${resp.toFixed(2)}; ${loc}.`;
+      const reasoning = `${c.role} with ${yoe.toFixed(1)} yrs; ${matched.length} AI core skills; response rate ${resp.toFixed(2)}.`;
 
       return { id: c.candidateId || c.id, score, reasoning };
     });

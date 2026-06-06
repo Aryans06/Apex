@@ -187,14 +187,24 @@ function CandidateProfileContent() {
                 </div>
               )}
               {candidate.links?.github && (
-                <div className="flex items-center gap-3 text-foreground hover:text-primary transition-colors cursor-pointer">
+                <a
+                  href={candidate.links.github.startsWith("http") ? candidate.links.github : `https://${candidate.links.github}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
+                >
                   <Link2 className="w-4 h-4" /> {candidate.links.github}
-                </div>
+                </a>
               )}
               {candidate.links?.portfolio && (
-                <div className="flex items-center gap-3 text-foreground hover:text-primary transition-colors cursor-pointer">
+                <a
+                  href={candidate.links.portfolio.startsWith("http") ? candidate.links.portfolio : `https://${candidate.links.portfolio}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
+                >
                   <Link2 className="w-4 h-4" /> {candidate.links.portfolio}
-                </div>
+                </a>
               )}
               <div className="flex items-center gap-3 text-muted-foreground">
                 <GraduationCap className="w-4 h-4" /> {candidate.education[0]?.degree}, {candidate.education[0]?.institution}
