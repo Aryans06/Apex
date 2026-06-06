@@ -357,10 +357,16 @@ function CandidateProfileContent() {
                   </div>
                   <p className="text-muted-foreground font-medium mb-4">{exp.company}</p>
 
-                  {exp.description && (
-                    <p className="text-sm text-foreground/80 mb-6 bg-secondary/30 p-4 rounded-lg border border-border/50">
-                      {exp.description}
-                    </p>
+                  {exp.bullets.length === 0 && exp.description && (
+                    <div className="group relative bg-secondary/10 border border-border/50 p-4 rounded-lg hover:border-primary/40 hover:bg-secondary/30 transition-all mb-3">
+                      <p className="text-sm text-foreground/80 leading-relaxed pr-24">{exp.description}</p>
+                      <button
+                        onClick={() => handleOpenProofOfWork(exp.description)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded-md font-medium flex items-center gap-1 shadow-lg shadow-primary/20 hover:scale-105"
+                      >
+                        <ShieldCheck className="w-3 h-3" /> Validate
+                      </button>
+                    </div>
                   )}
 
                   <div className="space-y-3">

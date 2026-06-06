@@ -2,13 +2,65 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mockCandidates } from "@/lib/data";
 
+// Normalizes either dataset format (profile + career_history) or mock format into a common shape
+function normalizeCandidate(c: any) {
+  if (c.profile && c.career_history) {
+    return {
+      candidateId: c.candidate_id || undefined,
+      name: c.profile.anonymized_name || "Unknown Candidate",
+      headline: c.profile.headline || null,
+      role: c.profile.current_title || "Software Engineer",
+      summary: c.profile.summary || "",
+      location: c.profile.location || null,
+      country: c.profile.country || null,
+      yearsOfExperience: c.profile.years_of_experience ?? null,
+      currentCompany: c.profile.current_company || null,
+      currentCompanySize: c.profile.current_company_size || null,
+      currentIndustry: c.profile.current_industry || null,
+      skills: c.skills || [],
+      experience: (c.career_history || []).map((h: any) => ({
+        role: h.title || "",
+        company: h.company || "",
+        duration: h.start_date ? `${h.start_date.slice(0, 7)} - ${h.end_date ? h.end_date.slice(0, 7) : "Present"}` : "",
+        startDate: h.start_date || null,
+        endDate: h.end_date || null,
+        durationMonths: h.duration_months ?? null,
+        isCurrent: h.is_current ?? false,
+        industry: h.industry || null,
+        companySize: h.company_size || null,
+        description: h.description || "",
+        bullets: h.description ? [h.description] : [],
+      })),
+      education: (c.education || []).map((e: any) => ({
+        institution: e.institution || "",
+        degree: e.degree || "",
+        fieldOfStudy: e.field_of_study || null,
+        startYear: e.start_year ?? null,
+        endYear: e.end_year ?? null,
+        grade: e.grade || null,
+        tier: e.tier || null,
+      })),
+      links: { github: "", portfolio: "" },
+      isProcessed: true,
+      hiddenGemScore: c.hiddenGemScore ?? null,
+      adjacencyScore: c.adjacencyScore ?? null,
+      trajectoryNotes: c.trajectoryNotes || null,
+      redrobSignals: c.redrob_signals || c.redrobSignals || null,
+    };
+  }
+  // Mock / already-normalized format
+  return c;
+}
+
 export async function POST(req: Request) {
   try {
     const { dataset } = await req.json();
 
-    const dataToSeed = dataset && Array.isArray(dataset) && dataset.length > 0
+    const raw = dataset && Array.isArray(dataset) && dataset.length > 0
       ? dataset
       : mockCandidates;
+
+    const dataToSeed = raw.map(normalizeCandidate);
 
     await db.candidate.deleteMany();
 
@@ -24,11 +76,12 @@ export async function POST(req: Request) {
       const educationArray = Array.isArray(candidate.education)
         ? candidate.education
         : candidate.education
-          ? [{ institution: candidate.education.school || candidate.education.institution || "", degree: candidate.education.degree, endYear: parseInt(candidate.education.year) || undefined }]
+          ? [{ institution: (candidate.education as any).school || (candidate.education as any).institution || "", degree: (candidate.education as any).degree, endYear: parseInt((candidate.education as any).year) || undefined }]
           : [];
 
       await db.candidate.create({
         data: {
+          candidateId: candidate.candidateId || undefined,
           name: candidate.name,
           role: candidate.role,
           headline: candidate.headline,
@@ -44,8 +97,8 @@ export async function POST(req: Request) {
           hiddenGemScore: candidate.hiddenGemScore,
           trajectoryNotes: candidate.trajectoryNotes,
           adjacencyScore: candidate.adjacencyScore,
-          githubUrl: candidate.links?.github,
-          portfolioUrl: candidate.links?.portfolio,
+          githubUrl: candidate.links?.github || null,
+          portfolioUrl: candidate.links?.portfolio || null,
           redrobSignals: candidate.redrobSignals ? JSON.stringify(candidate.redrobSignals) : undefined,
           experiences: {
             create: (candidate.experience || []).map((exp: any) => ({
@@ -59,7 +112,7 @@ export async function POST(req: Request) {
               industry: exp.industry,
               companySize: exp.companySize,
               description: exp.description,
-              bullets: JSON.stringify(exp.bullets || [])
+              bullets: JSON.stringify(exp.bullets?.length ? exp.bullets : exp.description ? [exp.description] : [])
             }))
           },
           education: {

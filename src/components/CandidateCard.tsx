@@ -196,15 +196,18 @@ export function CandidateCard({ candidate, onOpenProofOfWork, matchResult, rank,
                   <span className="text-muted-foreground">{exp.duration}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{exp.company}</div>
-                {exp.bullets.length > 0 && (
-                  <div className="group flex items-start gap-2 mt-1 bg-secondary/20 p-2 rounded border border-border/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => onOpenProofOfWork(candidate.id, exp.bullets[0])}>
-                    <ChevronRight className="w-4 h-4 mt-0.5 text-primary/50 group-hover:text-primary shrink-0" />
-                    <p className="text-sm text-foreground/90 flex-1">{exp.bullets[0]}</p>
-                    <button className="text-xs bg-primary/20 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/40 px-2 py-1 rounded whitespace-nowrap flex items-center gap-1 transition-colors shrink-0">
-                      <ShieldCheck className="w-3 h-3" /> {t("card.validate", locale)}
-                    </button>
-                  </div>
-                )}
+                {(exp.bullets.length > 0 || exp.description) && (() => {
+                  const claim = exp.bullets[0] || exp.description;
+                  return (
+                    <div className="group flex items-start gap-2 mt-1 bg-secondary/20 p-2 rounded border border-border/50 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => onOpenProofOfWork(candidate.id, claim)}>
+                      <ChevronRight className="w-4 h-4 mt-0.5 text-primary/50 group-hover:text-primary shrink-0" />
+                      <p className="text-sm text-foreground/90 flex-1 line-clamp-2">{claim}</p>
+                      <button className="text-xs bg-primary/20 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/40 px-2 py-1 rounded whitespace-nowrap flex items-center gap-1 transition-colors shrink-0">
+                        <ShieldCheck className="w-3 h-3" /> {t("card.validate", locale)}
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>
