@@ -61,38 +61,6 @@ const fadeUp = {
   }),
 };
 
-function FloatingParticles() {
-  const [particles, setParticles] = useState<
-    { id: number; x: number; y: number; size: number; duration: number; delay: number }[]
-  >([]);
-
-  useEffect(() => {
-    setParticles(
-      Array.from({ length: 20 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: Math.random() * 3 + 1,
-        duration: Math.random() * 15 + 10,
-        delay: Math.random() * 8,
-      }))
-    );
-  }, []);
-
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full bg-primary/20"
-          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size }}
-          animate={{ y: [0, -40, 0], opacity: [0, 0.6, 0] }}
-          transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: "easeInOut" }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function LandingContent() {
   const { locale } = useLocale();
@@ -169,8 +137,10 @@ function LandingContent() {
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      
+    <div className="min-h-screen relative overflow-hidden dot-grid">
+      {/* Dot-grid fade edges */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,transparent_60%,var(--color-background)_100%)]" />
+
       {/* Student Upload Modal */}
       <AnimatePresence>
         {studentModalOpen && (
@@ -265,26 +235,6 @@ function LandingContent() {
         )}
       </AnimatePresence>
 
-      <FloatingParticles />
-
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <motion.div 
-          animate={{ x: [0, 50, 0], y: [0, -50, 0], scale: [1, 1.1, 1] }} 
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" 
-        />
-        <motion.div 
-          animate={{ x: [0, -50, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }} 
-          transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 2 }}
-          className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" 
-        />
-        <motion.div 
-          animate={{ x: [0, 30, -30, 0], y: [0, -30, 30, 0] }} 
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" 
-        />
-      </div>
 
       {/* Navbar */}
       <motion.nav
