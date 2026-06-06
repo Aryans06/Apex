@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, ArrowRight, Shield, TrendingUp, Briefcase, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Briefcase, FileText, Loader2, CheckCircle2, XCircle, CheckCircle } from "lucide-react";
 import { ApexLogo } from "@/components/ApexLogo";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -186,32 +186,6 @@ function LandingContent() {
     }, 800);
   };
 
-  const features = [
-    {
-      icon: <Sparkles className="w-6 h-6" />,
-      title: t("landing.feature1Title", locale),
-      description: t("landing.feature1Desc", locale),
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20",
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: t("landing.feature2Title", locale),
-      description: t("landing.feature2Desc", locale),
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/20",
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: t("landing.feature3Title", locale),
-      description: t("landing.feature3Desc", locale),
-      color: "text-purple-400",
-      bg: "bg-purple-500/10",
-      border: "border-purple-500/20",
-    },
-  ];
 
   const steps = [
     { step: "01", title: t("landing.step1Title", locale), desc: t("landing.step1Desc", locale) },
@@ -464,46 +438,93 @@ function LandingContent() {
         </motion.div>
       </section>
 
-      {/* Features */}
+      {/* Before vs After */}
       <section className="relative z-10 px-8 md:px-16 pb-32 max-w-6xl mx-auto">
-        <motion.h2
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center text-3xl font-bold mb-4"
+          className="text-center mb-12"
         >
-          {t("landing.featuresTitle", locale)}
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center text-muted-foreground mb-12 max-w-xl mx-auto"
-        >
-          {t("landing.featuresSubtitle", locale)}
-        </motion.p>
+          <h2 className="text-3xl font-bold mb-3">The same resume.<br className="md:hidden" /> Two completely different outcomes.</h2>
+          <p className="text-muted-foreground max-w-lg mx-auto text-sm">Ravi Kumar, 4 yrs exp, Indore — self-taught, no FAANG, no IIT.</p>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {features.map((feature, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.15, duration: 0.5 }}
-              className={`glass-panel p-6 hover:-translate-y-1 transition-transform cursor-default group ${feature.border}`}
-            >
-              <div
-                className={`${feature.bg} ${feature.color} p-3 rounded-lg w-fit mb-4 group-hover:scale-110 transition-transform`}
-              >
-                {feature.icon}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-0 md:rounded-2xl overflow-hidden border border-border">
+          {/* LEFT — Traditional ATS */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="p-8 bg-secondary/20 border-b md:border-b-0 md:border-r border-border"
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <span className="relative flex h-2 w-2">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Traditional ATS</span>
+            </div>
+
+            <div className="space-y-3 mb-8">
+              {[
+                "FAANG experience",
+                "IIT / NIT degree",
+                "Recognisable company",
+                "Tier-1 city",
+              ].map((criterion) => (
+                <div key={criterion} className="flex items-center gap-3 p-3 rounded-lg bg-red-500/5 border border-red-500/10">
+                  <XCircle className="w-4 h-4 text-red-500/60 shrink-0" />
+                  <span className="text-sm text-muted-foreground line-through decoration-red-500/40">{criterion}</span>
+                  <span className="ml-auto text-xs text-red-500/60 font-mono">NOT FOUND</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-center">
+              <div className="text-red-400 font-bold text-lg mb-0.5">FILTERED OUT</div>
+              <div className="text-xs text-muted-foreground">Score: 23 / 100 — never seen by a recruiter</div>
+            </div>
+          </motion.div>
+
+          {/* RIGHT — Apex */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="p-8 bg-primary/5"
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Apex ATS</span>
+            </div>
+
+            <div className="space-y-3 mb-8">
+              {[
+                { signal: "React → Vue adjacency detected",    tag: "Skill adjacency" },
+                { signal: "3 production apps shipped solo",     tag: "Proof of work"   },
+                { signal: "3 promotions in 4 years",           tag: "Career velocity" },
+                { signal: "Self-taught, consistent commits",   tag: "Hidden gem"      },
+              ].map(({ signal, tag }) => (
+                <div key={signal} className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-sm text-foreground/80">{signal}</span>
+                  <span className="ml-auto text-xs text-emerald-400 font-mono whitespace-nowrap">{tag}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-primary/25 bg-primary/10 p-4 text-center">
+              <div className="text-primary font-bold text-lg mb-0.5 flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4" /> HIDDEN GEM — 91 / 100
               </div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
-            </motion.div>
-          ))}
+              <div className="text-xs text-muted-foreground">Matched to 3 open roles · shortlisted instantly</div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
