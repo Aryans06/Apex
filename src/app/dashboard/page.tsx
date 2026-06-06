@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle, GitCompare, Mail, Download } from "lucide-react";
+import { Sparkles, Activity, Users, Zap, Upload, Loader2, CheckCircle2, Briefcase, Search, FileText, AlertCircle, GitCompare, Mail, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { CandidateCard } from "@/components/CandidateCard";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
@@ -225,6 +225,14 @@ function DashboardContent() {
     : filtered;
 
   const allSkills = [...new Set(candidates.flatMap((c) => c.skills.map(s => s.name)))].sort();
+
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(displayed.length / PAGE_SIZE);
+  const paginated = displayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset to page 1 whenever the filtered set changes
+  useEffect(() => { setPage(1); }, [searchQuery, filters, showHiddenGemsOnly, matchResults.length]);
 
   const exportCSV = () => {
     const hasMatch = matchResults.length > 0;
@@ -556,7 +564,10 @@ function DashboardContent() {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-sm text-muted-foreground">
-            <span className="text-foreground font-medium">{displayed.length}</span> candidates
+            {totalPages > 1
+              ? <><span className="text-foreground font-medium">{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, displayed.length)}</span> of <span className="text-foreground font-medium">{displayed.length}</span></>
+              : <span className="text-foreground font-medium">{displayed.length}</span>
+            } candidates
           </span>
           {displayed.length > 0 && (
             <button
@@ -596,29 +607,73 @@ function DashboardContent() {
           )}
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 gap-5">
-          {displayed.map((candidate, idx) => (
-            <motion.div key={candidate.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * idx }}>
-              <div className="relative group/card">
-                <CandidateCard
-                  candidate={candidate}
-                  onOpenProofOfWork={handleOpenProofOfWork}
-                  matchResult={matchResults.find((r) => r.candidateId === candidate.id)}
-                  rank={matchResults.length > 0 ? idx + 1 : undefined}
-                  isSelected={selectedForCompare.includes(candidate.id)}
-                  onToggleSelect={toggleCompare}
-                />
-                {/* Outreach quick action */}
-                <button
-                  onClick={() => openOutreach(candidate)}
-                  className="absolute top-4 right-4 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center gap-1.5 text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/30"
-                >
-                  <Mail className="w-3.5 h-3.5" /> Outreach
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          {paginated.map((candidate, idx) => {
+            const globalIdx = (page - 1) * PAGE_SIZE + idx;
+            return (
+              <motion.div key={candidate.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 * idx }}>
+                <div className="relative group/card">
+                  <CandidateCard
+                    candidate={candidate}
+                    onOpenProofOfWork={handleOpenProofOfWork}
+                    matchResult={matchResults.find((r) => r.candidateId === candidate.id)}
+                    rank={matchResults.length > 0 ? globalIdx + 1 : undefined}
+                    isSelected={selectedForCompare.includes(candidate.id)}
+                    onToggleSelect={toggleCompare}
+                  />
+                  {/* Outreach quick action */}
+                  <button
+                    onClick={() => openOutreach(candidate)}
+                    className="absolute top-4 right-4 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center gap-1.5 text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/30"
+                  >
+                    <Mail className="w-3.5 h-3.5" /> Outreach
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-8 pb-4">
+            <button
+              onClick={() => { setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              disabled={page === 1}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) =>
+                Math.abs(p - page) <= 2 || p === 1 || p === totalPages ? (
+                  <button
+                    key={p}
+                    onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                      p === page
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ) : Math.abs(p - page) === 3 ? (
+                  <span key={p} className="w-9 text-center text-muted-foreground text-sm">…</span>
+                ) : null
+              )}
+            </div>
+            <button
+              onClick={() => { setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              disabled={page === totalPages}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        </>
       )}
     </main>
   );
