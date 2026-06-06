@@ -4,7 +4,7 @@ import { Candidate } from "@/lib/data";
 import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap, Loader2, AlertTriangle, Mail, StickyNote, Send, Trash2, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ProofOfWorkModal } from "@/components/ProofOfWorkModal";
 import { CandidateAvatar } from "@/components/CandidateAvatar";
@@ -21,6 +21,7 @@ interface Note {
 function CandidateProfileContent() {
   const params = useParams();
   const candidateId = params?.id as string;
+  const router = useRouter();
   const { toast } = useToast();
 
   const [candidate, setCandidate] = useState<Candidate | null>(null);
@@ -33,6 +34,8 @@ function CandidateProfileContent() {
   const [noteInput, setNoteInput] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deletingCandidate, setDeletingCandidate] = useState(false);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -100,6 +103,20 @@ function CandidateProfileContent() {
   const isHiddenGem = candidate?.hiddenGemScore && candidate.hiddenGemScore > 80;
   const hasRedFlags = candidate?.redFlags && candidate.redFlags.length > 0;
 
+  const handleDeleteCandidate = async () => {
+    setDeletingCandidate(true);
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast("Candidate deleted", "success");
+      router.push("/dashboard");
+    } catch {
+      toast("Failed to delete candidate", "error");
+      setDeletingCandidate(false);
+      setDeleteConfirm(false);
+    }
+  };
+
   const handleOpenProofOfWork = (claim: string) => {
     setSelectedClaim(claim);
     setModalOpen(true);
@@ -147,7 +164,7 @@ function CandidateProfileContent() {
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to Dashboard
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => {
               const claim = candidate?.experience[0]?.bullets[0] || candidate?.experience[0]?.description || candidate?.summary || "";
@@ -163,6 +180,31 @@ function CandidateProfileContent() {
           >
             <Mail className="w-4 h-4" /> Draft Outreach Email
           </button>
+          {!deleteConfirm ? (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-full text-sm font-medium hover:bg-red-500/20 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-red-400 font-medium">Sure?</span>
+              <button
+                onClick={handleDeleteCandidate}
+                disabled={deletingCandidate}
+                className="flex items-center gap-1.5 bg-red-500 text-white px-3 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60"
+              >
+                {deletingCandidate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Yes, delete
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-full border border-border"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
 
