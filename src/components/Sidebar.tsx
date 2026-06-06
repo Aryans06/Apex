@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, KanbanSquare, BarChart3, Briefcase, User } from "lucide-react";
+import { LayoutDashboard, KanbanSquare, BarChart3, Briefcase, User, Settings } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { ApexLogo } from "@/components/ApexLogo";
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, exact: false },
   { href: "/dashboard/jobs", label: "Saved JDs", icon: Briefcase, exact: false },
   { href: "/profile", label: "Profile", icon: User, exact: false },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings, exact: false },
 ];
 
 export function Sidebar() {

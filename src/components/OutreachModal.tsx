@@ -6,6 +6,7 @@ import { X, Mail, Loader2, Copy, CheckCircle2, CalendarPlus } from "lucide-react
 import { Candidate } from "@/lib/data";
 import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
+import { getRecruiterProfile } from "@/lib/recruiter-profile";
 
 const EMAIL_TYPES = [
   { id: "intro",     label: "Outreach",   color: "bg-primary/20 text-primary border-primary/30" },
@@ -66,7 +67,12 @@ export function OutreachModal({ isOpen, onClose, candidate }: OutreachModalProps
           candidateRole: candidate.role,
           candidateSummary: candidate.summary,
           emailType,
-          recruiterName: "The Hiring Team",
+          recruiterName: (() => {
+            const rp = getRecruiterProfile();
+            return rp.name
+              ? [rp.name, rp.title && rp.company ? `${rp.title} at ${rp.company}` : rp.company || rp.title].filter(Boolean).join(", ")
+              : "The Hiring Team";
+          })(),
           slotLink,
           slotLabel,
         }),
