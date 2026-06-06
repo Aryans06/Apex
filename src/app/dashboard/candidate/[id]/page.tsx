@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate } from "@/lib/data";
-import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap, Loader2, AlertTriangle, Mail, StickyNote, Send, Trash2, ClipboardList } from "lucide-react";
+import { ArrowLeft, Sparkles, TrendingUp, ShieldCheck, Link2, Briefcase, GraduationCap, MapPin, Zap, Loader2, AlertTriangle, Mail, StickyNote, Send, Trash2, ClipboardList, History } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
@@ -15,6 +15,14 @@ import { useToast } from "@/components/Toast";
 interface Note {
   id: string;
   content: string;
+  createdAt: string;
+}
+
+interface AssessmentRecord {
+  id: string;
+  claim: string;
+  questions: { q: string; intent: string }[];
+  sentToEmail: string | null;
   createdAt: string;
 }
 
@@ -36,6 +44,8 @@ function CandidateProfileContent() {
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deletingCandidate, setDeletingCandidate] = useState(false);
+  const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
+  const [expandedAssessment, setExpandedAssessment] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -54,6 +64,15 @@ function CandidateProfileContent() {
     };
     fetchCandidate();
   }, [candidateId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchAssessments = async () => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/assessments`);
+      if (res.ok) setAssessments(await res.json());
+    } catch { /* non-critical */ }
+  };
+
+  useEffect(() => { fetchAssessments(); }, [candidateId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isLoading && candidate) {
@@ -156,7 +175,7 @@ function CandidateProfileContent() {
 
   return (
     <main className="min-h-screen p-8 md:p-12 max-w-7xl mx-auto dot-grid">
-      <ProofOfWorkModal isOpen={modalOpen} onClose={() => setModalOpen(false)} claim={selectedClaim} candidateName={candidate.name} />
+      <ProofOfWorkModal isOpen={modalOpen} onClose={() => setModalOpen(false)} claim={selectedClaim} candidateName={candidate.name} candidateId={candidateId} onAssessmentSent={fetchAssessments} />
       <OutreachModal isOpen={outreachOpen} onClose={() => setOutreachOpen(false)} candidate={candidate} />
 
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8 flex items-center justify-between">
@@ -228,6 +247,11 @@ function CandidateProfileContent() {
               {hasRedFlags && (
                 <span className="flex items-center gap-1 text-xs font-semibold bg-amber-500/15 text-amber-400 px-2.5 py-1 rounded-md border border-amber-500/30">
                   <AlertTriangle className="w-3 h-3" /> Red Flags
+                </span>
+              )}
+              {assessments.length > 0 && (
+                <span className="flex items-center gap-1 text-xs font-semibold bg-emerald-500/15 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/30">
+                  <ClipboardList className="w-3 h-3" /> Assessment Sent
                 </span>
               )}
             </h1>
@@ -381,6 +405,45 @@ function CandidateProfileContent() {
               </button>
             </div>
           </motion.div>
+
+          {/* Assessment History */}
+          {assessments.length > 0 && (
+            <motion.div custom={2} variants={fadeInUp} initial="hidden" animate="visible" className="glass-panel p-6 border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-4">
+                <History className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">Assessment History</h3>
+                <span className="ml-auto text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">{assessments.length} sent</span>
+              </div>
+              <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+                {assessments.map((a) => (
+                  <div key={a.id} className="bg-secondary/40 border border-border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedAssessment(expandedAssessment === a.id ? null : a.id)}
+                      className="w-full px-3 py-2.5 flex items-start gap-2 text-left hover:bg-secondary/60 transition-colors"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-foreground/80 line-clamp-1 font-medium">{a.claim}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Sent to {a.sentToEmail} · {new Date(a.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </button>
+                    {expandedAssessment === a.id && (
+                      <div className="border-t border-border px-3 py-2 space-y-2">
+                        {a.questions.map((q, i) => (
+                          <div key={i} className="text-xs">
+                            <p className="font-medium text-foreground/90">Q{i + 1}. {q.q}</p>
+                            <p className="text-muted-foreground mt-0.5 italic">{q.intent}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Right Column */}

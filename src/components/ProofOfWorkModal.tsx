@@ -11,11 +11,13 @@ interface ProofOfWorkModalProps {
   onClose: () => void;
   claim: string;
   candidateName?: string;
+  candidateId?: string;
+  onAssessmentSent?: () => void;
 }
 
 type SendState = "idle" | "enterEmail" | "sending" | "sent" | "error";
 
-export function ProofOfWorkModal({ isOpen, onClose, claim, candidateName }: ProofOfWorkModalProps) {
+export function ProofOfWorkModal({ isOpen, onClose, claim, candidateName, candidateId, onAssessmentSent }: ProofOfWorkModalProps) {
   const { locale } = useLocale();
   const [isGenerating, setIsGenerating] = useState(true);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -82,12 +84,14 @@ export function ProofOfWorkModal({ isOpen, onClose, claim, candidateName }: Proo
           email: candidateEmail,
           candidateName,
           claim,
-          questions: questions.map((q: any) => ({ q: q.q, intent: q.intent }))
+          questions: questions.map((q: any) => ({ q: q.q, intent: q.intent })),
+          candidateId,
         })
       });
 
       if (!res.ok) throw new Error("Send failed");
       setSendState("sent");
+      onAssessmentSent?.();
     } catch (error) {
       console.error("Send error:", error);
       setSendState("error");

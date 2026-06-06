@@ -35,6 +35,7 @@ model Candidate {
   experiences  Experience[]
   education    EducationRecord[]
   notes        CandidateNote[]
+  assessments  AssessmentRecord[]
 }
 
 model Experience {
@@ -80,6 +81,17 @@ model CandidateNote {
   id        String   @id @default(uuid())
   content   String
   createdAt DateTime @default(now())
+
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model AssessmentRecord {
+  id          String   @id @default(uuid())
+  claim       String
+  questions   String   // JSON array of {q, intent}
+  sentToEmail String?
+  createdAt   DateTime @default(now())
 
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)

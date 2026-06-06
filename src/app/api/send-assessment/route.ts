@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { db } from "@/lib/db";
 
 function buildEmailHtml(candidateName: string | undefined, claim: string, questions: Array<{ q: string; intent: string }>) {
   const name = candidateName || "Candidate";
@@ -38,13 +39,24 @@ function buildEmailHtml(candidateName: string | undefined, claim: string, questi
 
 export async function POST(req: Request) {
   try {
-    const { email, candidateName, claim, questions } = await req.json();
+    const { email, candidateName, claim, questions, candidateId } = await req.json();
 
     if (!email || !claim || !questions?.length) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
+    if (candidateId) {
+      await db.assessmentRecord.create({
+        data: {
+          candidateId,
+          claim,
+          questions: JSON.stringify(questions),
+          sentToEmail: email,
+        },
+      });
+    }
 
     if (!smtpConfigured) {
       // Demo mode — log and return success so the UI flow works without SMTP setup
