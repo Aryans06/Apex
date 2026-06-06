@@ -91,6 +91,8 @@ export async function GET() {
       hiddenGemScore: c.hiddenGemScore,
       trajectoryNotes: c.trajectoryNotes,
       adjacencyScore: c.adjacencyScore,
+      pipelineStage: c.pipelineStage || "applied",
+      redFlags: c.redFlags ? (() => { try { return JSON.parse(c.redFlags!); } catch { return []; } })() : [],
       links: {
         github: c.githubUrl || "",
         portfolio: c.portfolioUrl || undefined
