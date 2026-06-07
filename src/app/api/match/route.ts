@@ -59,17 +59,37 @@ const GOOD_TITLES = [
 const PROFICIENCY_WEIGHT: Record<string, number> = { beginner: 0.4, intermediate: 0.6, advanced: 0.8, expert: 1.0 };
 const TIER_SCORE: Record<string, number> = { tier_1: 1.0, tier_2: 0.8, tier_3: 0.6, tier_4: 0.4, unknown: 0.5 };
 
+// ─── JD parsing ───────────────────────────────────────────────────────────────
+
+/**
+ * Scan the JD text and return the subset of SKILL_GROUPS that are mentioned.
+ * Falls back to all groups when the JD is empty or matches nothing (so the
+ * ranker still works when no JD text is supplied).
+ */
+function extractJdGroups(jd: string): Record<string, string[]> {
+  if (!jd.trim()) return SKILL_GROUPS;
+  const jdLower = jd.toLowerCase();
+  const active: Record<string, string[]> = {};
+  for (const [group, terms] of Object.entries(SKILL_GROUPS)) {
+    if (terms.some(t => jdLower.includes(t))) {
+      active[group] = terms;
+    }
+  }
+  return Object.keys(active).length >= 2 ? active : SKILL_GROUPS;
+}
+
 // ─── Scoring helpers ──────────────────────────────────────────────────────────
 
-function scoreSkills(skills: any[]): { score: number; matched: string[] } {
+function scoreSkills(skills: any[], activeGroups: Record<string, string[]>): { score: number; matched: string[] } {
   const best: Record<string, number> = {};
+  const norm = Math.max(Object.keys(activeGroups).length, NUM_GROUPS);
   for (const skill of skills) {
     const name = (skill.name || "").toLowerCase();
     const prof = PROFICIENCY_WEIGHT[skill.proficiency] ?? 0.6;
     const endorsements = Math.min((skill.endorsements || 0) / 50, 1);
     const duration = Math.min((skill.duration_months || 0) / 60, 1);
     const value = prof * (0.6 + 0.2 * endorsements + 0.2 * duration);
-    for (const [group, terms] of Object.entries(SKILL_GROUPS)) {
+    for (const [group, terms] of Object.entries(activeGroups)) {
       // Only allow reverse containment for longer terms to avoid false matches
       // (e.g. "go" matching inside "golang", "ai" matching inside "faiss").
       if (terms.some(t => name.includes(t) || (t.length >= 5 && t.includes(name)))) {
@@ -77,7 +97,7 @@ function scoreSkills(skills: any[]): { score: number; matched: string[] } {
       }
     }
   }
-  const score = Math.min(Object.values(best).reduce((a, b) => a + b, 0) / NUM_GROUPS, 1);
+  const score = Math.min(Object.values(best).reduce((a, b) => a + b, 0) / norm, 1);
   return { score, matched: Object.keys(best) };
 }
 
@@ -95,7 +115,7 @@ function scoreExperience(c: any): number {
 }
 
 function scoreBehavioral(signals: any): number {
-  if (!signals) return 0.4;
+  if (!signals) return 0.5;
   const responseRate = signals.recruiter_response_rate ?? 0;
   const lastActive = signals.last_active_date ?? "";
   let recency = 0.3;
@@ -123,12 +143,12 @@ function titleMultiplier(title: string): number {
   return 0.80;
 }
 
-function scoreCandidate(c: any): { overallScore: number; technicalFit: number; trajectoryFit: number; culturalFit: number; reasoning: string } {
+function scoreCandidate(c: any, activeGroups: Record<string, string[]>): { overallScore: number; technicalFit: number; trajectoryFit: number; culturalFit: number; reasoning: string } {
   const title = c.role ?? "Unknown";
   const tMult = titleMultiplier(title);
   const yoe = c.yearsOfExperience ?? 0;
 
-  const { score: skillScore, matched } = scoreSkills(c.skills ?? []);
+  const { score: skillScore, matched } = scoreSkills(c.skills ?? [], activeGroups);
   const signals = c.redrobSignals ? (typeof c.redrobSignals === "string" ? JSON.parse(c.redrobSignals) : c.redrobSignals) : null;
   const resp = signals?.recruiter_response_rate ?? 0;
   const top3 = matched.slice(0, 3).join(", ") || "none";
@@ -190,8 +210,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No candidates to match" }, { status: 400 });
     }
 
+    const activeGroups = extractJdGroups(textInput ?? "");
+
     const rankings = candidates
-      .map(c => ({ candidateId: c.id, ...scoreCandidate(c) }))
+      .map(c => ({ candidateId: c.id, ...scoreCandidate(c, activeGroups) }))
       .sort((a, b) => b.overallScore - a.overallScore);
 
     // Mark top 2 as shortlisted
