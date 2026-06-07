@@ -89,7 +89,7 @@ All AI calls use `gemini-2.5-flash`. Three Gemini-backed endpoints:
 
 1. **`/api/analyze`** — Parses resume → extracts structured JSON → persists to SQLite. Scores `hiddenGemScore` and `adjacencyScore` (0–100). Considers Indian context: Tier-1/2/3 cities, IIT vs self-taught, startup vs services.
 
-2. **`/api/match`** — Given a JD + candidate pool → returns ranked list with `technicalFit` (40%), `trajectoryFit` (35%), `culturalFit` (25%) = `overallScore`. Top 2 are `isShortlisted: true`.
+2. **`/api/match`** — Given a JD + candidate pool → returns ranked list with `technicalFit` (40%), `trajectoryFit`/experience (25%), `culturalFit`/behavioral (25%), education (10%) = `overallScore`, multiplied by a title relevance factor. Skill groups are filtered to those mentioned in the JD text before scoring. Top 2 are `isShortlisted: true`.
 
 3. **`/api/generate-assessment`** — Given a resume bullet claim → returns 3 deep technical proof-of-work questions with `intent` explanations. Has a mock fallback when `GEMINI_API_KEY` is missing.
 
