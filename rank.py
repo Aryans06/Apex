@@ -189,7 +189,9 @@ def score_skills(skills: list[dict]) -> tuple[float, list[str]]:
 
         for group, terms in SKILL_GROUPS.items():
             for term in terms:
-                if term in name_lower or name_lower in term:
+                # Reverse containment only for longer terms to avoid false matches
+                # (e.g. "ai" hitting "faiss", "go" hitting "golang").
+                if term in name_lower or (len(name_lower) >= 5 and name_lower in term):
                     if value > best_per_group.get(group, 0.0):
                         best_per_group[group] = value
                     break
