@@ -4,29 +4,57 @@ import { db } from "@/lib/db";
 // ─── JD Skill Groups (same algorithm as rank.py) ─────────────────────────────
 
 const SKILL_GROUPS: Record<string, string[]> = {
+  // ── AI / ML ──────────────────────────────────────────────────────────────
   embeddings: ["embedding", "embeddings", "sentence transformer", "sentence-transformer", "bge", "text embedding", "dense retrieval", "bi-encoder", "semantic embedding"],
   vector_db: ["faiss", "qdrant", "pinecone", "weaviate", "milvus", "opensearch", "elasticsearch", "vector search", "vector database", "vector store", "hnsw", "pgvector", "chroma"],
   information_retrieval: ["information retrieval", "bm25", "tfidf", "tf-idf", "sparse retrieval", "hybrid search", "hybrid retrieval", "semantic search", "neural search", "lucene"],
   rag: ["rag", "retrieval augmented", "retrieval-augmented", "llamaindex", "llama index", "document retrieval"],
-  llm: ["llm", "large language model", "gpt", "bert", "transformer", "language model", "huggingface", "hugging face", "llama", "mistral"],
-  fine_tuning: ["fine-tuning", "fine tuning", "finetuning", "lora", "qlora", "peft", "rlhf", "instruction tuning", "sft"],
+  llm: ["llm", "large language model", "gpt", "bert", "transformer", "language model", "huggingface", "hugging face", "llama", "mistral", "gemini", "anthropic", "openai"],
+  fine_tuning: ["fine-tuning", "fine tuning", "finetuning", "lora", "qlora", "peft", "rlhf", "instruction tuning", "sft", "dpo"],
   ranking: ["ranking", "learning to rank", "reranking", "re-ranking", "ranker", "pointwise", "pairwise", "listwise"],
-  recommendation: ["recommendation", "recommender", "collaborative filtering", "matrix factorization", "content-based filtering"],
-  nlp: ["nlp", "natural language processing", "text classification", "named entity recognition", "ner", "sentiment analysis", "question answering", "nlu"],
+  recommendation: ["recommendation", "recommender", "collaborative filtering", "matrix factorization", "content-based filtering", "two-tower"],
+  nlp: ["nlp", "natural language processing", "text classification", "named entity recognition", "ner", "sentiment analysis", "question answering", "nlu", "text mining"],
+  evaluation_metrics: ["ndcg", "mrr", "a/b testing", "a/b test", "offline evaluation", "evaluation framework", "online experiment", "statistical significance"],
+  mlops: ["mlflow", "weights & biases", "wandb", "bentoml", "ray serve", "model serving", "triton", "ml pipeline", "kubeflow", "feature store"],
+  // ── Web / Full-Stack ─────────────────────────────────────────────────────
+  frontend: ["react", "vue", "angular", "svelte", "next.js", "nextjs", "nuxt", "gatsby", "tailwind", "css", "html", "typescript", "javascript", "redux", "webpack", "vite", "jquery", "web components"],
+  backend: ["node.js", "nodejs", "express", "fastapi", "django", "flask", "spring boot", "spring", "golang", "go lang", "rust", "java", "scala", "c#", ".net", "grpc", "rest api", "graphql", "laravel", "rails", "ruby on rails", "php", "asp.net"],
+  database: ["postgresql", "mysql", "mongodb", "redis", "sqlite", "dynamodb", "cassandra", "firebase", "supabase", "sql", "nosql", "prisma orm", "sequelize", "typeorm", "data modeling"],
+  // ── Cloud & DevOps ───────────────────────────────────────────────────────
+  cloud_devops: ["aws", "gcp", "azure", "docker", "kubernetes", "k8s", "terraform", "ci/cd", "github actions", "jenkins", "helm", "ansible", "serverless", "cloud functions", "lambda", "ecs", "cloud run"],
+  system_design: ["distributed systems", "kafka", "message queue", "rabbitmq", "event-driven", "microservices", "api design", "system design", "load balancing", "caching", "pub/sub", "grpc"],
+  // ── Mobile ───────────────────────────────────────────────────────────────
+  mobile: ["react native", "flutter", "swift", "kotlin", "android", "ios", "expo", "jetpack compose", "swiftui", "xcode", "mobile development"],
+  // ── General Engineering ──────────────────────────────────────────────────
   python: ["python"],
-  evaluation_metrics: ["ndcg", "mrr", "a/b testing", "a/b test", "offline evaluation", "evaluation framework", "online experiment"],
-  mlops: ["mlflow", "weights & biases", "wandb", "bentoml", "ray serve", "model serving", "triton", "ml pipeline"],
+  testing_quality: ["unit testing", "integration testing", "jest", "pytest", "cypress", "selenium", "playwright", "tdd", "bdd", "e2e testing", "test automation"],
 };
 
-const NUM_GROUPS = Object.keys(SKILL_GROUPS).length;
-
-const NEGATIVE_TERMS = ["computer vision", "opencv", "image classification", "object detection", "cnn", "convolutional neural", "gan", "diffusion model", "speech recognition", "asr", "tts", "robotics"];
+// Normalisation constant: kept at 12 (≈ strong-specialist depth) so adding
+// more domain groups doesn't deflate AI/ML or web candidates' scores — the
+// min(..., 1) cap handles generalists who hit many groups.
+const NUM_GROUPS = 12;
 
 const CONSULTING_FIRMS = new Set(["tcs", "tata consultancy", "infosys", "wipro", "accenture", "cognizant", "capgemini", "hcl technologies", "hcltech", "tech mahindra", "ltimindtree", "lti mindtree", "mphasis", "hexaware", "mindtree", "persistent systems"]);
 
-const NON_TECH_TITLES = new Set(["hr manager", "human resources", "content writer", "graphic designer", "marketing manager", "marketing executive", "sales executive", "sales manager", "accountant", "operations manager", "civil engineer", "mechanical engineer", "electrical engineer", "business analyst", "customer support", "product manager", "ui designer", "ux designer"]);
+const NON_TECH_TITLES = new Set(["hr manager", "human resources", "content writer", "graphic designer", "marketing manager", "marketing executive", "sales executive", "sales manager", "accountant", "operations manager", "civil engineer", "mechanical engineer", "electrical engineer", "chemical engineer", "customer support", "finance manager"]);
 
-const GOOD_TITLES = ["machine learning", "ml engineer", "ai engineer", "nlp engineer", "data scientist", "applied scientist", "research engineer", "search engineer", "ranking engineer", "retrieval", "recommendation", "deep learning", "llm"];
+const GOOD_TITLES = [
+  // AI / ML
+  "machine learning", "ml engineer", "ai engineer", "nlp engineer", "data scientist",
+  "applied scientist", "research engineer", "search engineer", "ranking engineer",
+  "retrieval", "recommendation", "deep learning", "llm", "ai researcher",
+  // Software engineering
+  "software engineer", "software developer", "full stack", "fullstack",
+  "frontend engineer", "frontend developer", "backend engineer", "backend developer",
+  "web developer", "web engineer",
+  // Infra / Cloud / Mobile
+  "devops", "site reliability", "sre", "platform engineer", "cloud engineer",
+  "infrastructure engineer", "mobile engineer", "android developer", "ios developer",
+  "flutter developer", "react native",
+  // Data
+  "data engineer", "analytics engineer", "data platform",
+];
 
 const PROFICIENCY_WEIGHT: Record<string, number> = { beginner: 0.4, intermediate: 0.6, advanced: 0.8, expert: 1.0 };
 const TIER_SCORE: Record<string, number> = { tier_1: 1.0, tier_2: 0.8, tier_3: 0.6, tier_4: 0.4, unknown: 0.5 };
@@ -35,22 +63,21 @@ const TIER_SCORE: Record<string, number> = { tier_1: 1.0, tier_2: 0.8, tier_3: 0
 
 function scoreSkills(skills: any[]): { score: number; matched: string[] } {
   const best: Record<string, number> = {};
-  let negCount = 0;
   for (const skill of skills) {
     const name = (skill.name || "").toLowerCase();
     const prof = PROFICIENCY_WEIGHT[skill.proficiency] ?? 0.6;
     const endorsements = Math.min((skill.endorsements || 0) / 50, 1);
     const duration = Math.min((skill.duration_months || 0) / 60, 1);
     const value = prof * (0.6 + 0.2 * endorsements + 0.2 * duration);
-    if (NEGATIVE_TERMS.some(t => name.includes(t))) negCount++;
     for (const [group, terms] of Object.entries(SKILL_GROUPS)) {
-      if (terms.some(t => name.includes(t) || t.includes(name))) {
+      // Only allow reverse containment for longer terms to avoid false matches
+      // (e.g. "go" matching inside "golang", "ai" matching inside "faiss").
+      if (terms.some(t => name.includes(t) || (t.length >= 5 && t.includes(name)))) {
         if (value > (best[group] ?? 0)) best[group] = value;
       }
     }
   }
-  let score = Math.min(Object.values(best).reduce((a, b) => a + b, 0) / NUM_GROUPS, 1);
-  if (negCount >= 4 && Object.keys(best).length < 3) score *= 0.4;
+  const score = Math.min(Object.values(best).reduce((a, b) => a + b, 0) / NUM_GROUPS, 1);
   return { score, matched: Object.keys(best) };
 }
 
