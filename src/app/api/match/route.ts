@@ -162,9 +162,18 @@ function scoreCandidate(c: any, activeGroups: Record<string, string[]>): { overa
   const behavioral = scoreBehavioral(signals);
   const eduScore = scoreEducation(c.education ?? []);
   const raw = 0.40 * skillScore + 0.25 * expScore + 0.25 * behavioral + 0.10 * eduScore;
-  const final = Math.round(raw * tMult * 100);
 
-  const reasoning = `${title} with ${yoe.toFixed(1)} yrs; ${matched.length} core skill groups (${top3}); response rate ${resp.toFixed(2)}.`;
+  // Hidden gem boost: kicks in when baseline technical fit exists (skillScore ≥ 0.25).
+  // Adds up to +6 points for a score-100 gem — meaningful as a tie-breaker without
+  // overriding the primary signal for clearly stronger candidates.
+  const gemScore = Math.min((c.hiddenGemScore ?? 0) / 100, 1);
+  const gemBoost = skillScore >= 0.25 ? gemScore * 0.06 : 0;
+  const isGem = (c.hiddenGemScore ?? 0) > 80;
+
+  const final = Math.round(Math.min(raw * tMult + gemBoost, 1) * 100);
+
+  const gemNote = isGem && skillScore >= 0.25 ? ` Hidden gem (score ${c.hiddenGemScore}).` : "";
+  const reasoning = `${title} with ${yoe.toFixed(1)} yrs; ${matched.length} core skill groups (${top3}); response rate ${resp.toFixed(2)}.${gemNote}`;
 
   return {
     overallScore: Math.min(final, 100),
@@ -212,12 +221,29 @@ export async function POST(req: Request) {
 
     const activeGroups = extractJdGroups(textInput ?? "");
 
+    const candidateMap = new Map(candidates.map(c => [c.id, c]));
+
     const rankings = candidates
       .map(c => ({ candidateId: c.id, ...scoreCandidate(c, activeGroups) }))
       .sort((a, b) => b.overallScore - a.overallScore);
 
-    // Mark top 2 as shortlisted
-    rankings.forEach((r, i) => (r as any).isShortlisted = i < 2);
+    // Shortlist top 2, but if a hidden gem sits just outside (positions 3–5)
+    // within 8 points of #2, promote it over the non-gem at #2.
+    const shortlistCutoff = 2;
+    const runner = rankings[1];
+    const runnerIsGem = (candidateMap.get(runner?.candidateId)?.hiddenGemScore ?? 0) > 80;
+    if (!runnerIsGem) {
+      const gemIdx = rankings.slice(2, 5).findIndex(r => {
+        const gem = candidateMap.get(r.candidateId)?.hiddenGemScore ?? 0;
+        return gem > 80 && runner.overallScore - r.overallScore <= 8;
+      });
+      if (gemIdx !== -1) {
+        const actualIdx = gemIdx + 2;
+        [rankings[1], rankings[actualIdx]] = [rankings[actualIdx], rankings[1]];
+      }
+    }
+
+    rankings.forEach((r, i) => (r as any).isShortlisted = i < shortlistCutoff);
 
     return NextResponse.json({ rankings });
 
