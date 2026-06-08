@@ -155,6 +155,128 @@ Requirements:
 - Experience measuring ranking quality with NDCG, MRR, or MAP
 - Bonus: experience with recommendation systems (collaborative filtering, two-tower models)`,
   },
+
+  // ── General JDs calibrated to the actual candidate pool ──────────────────
+
+  {
+    title: "Java / Spring Boot Engineer",
+    content: `We are looking for a Java Engineer to build and scale enterprise-grade backend services used by millions of users across India.
+
+Responsibilities:
+- Design and develop microservices using Java and Spring Boot
+- Build and consume REST and gRPC APIs for internal and external integrations
+- Write optimised SQL queries and manage schemas in MySQL or PostgreSQL
+- Participate in code reviews, design discussions, and sprint planning
+- Work with the DevOps team to deploy services on AWS or Azure using Docker and Kubernetes
+
+Requirements:
+- 2–5 years of backend development experience in Java
+- Strong command of Spring Boot, Spring MVC, and Spring Data JPA
+- Proficiency in SQL and relational database design
+- Hands-on experience with REST API development and gRPC
+- Familiarity with Docker, Kubernetes, and cloud platforms (AWS or Azure)
+- Understanding of unit testing with JUnit and Mockito
+- Knowledge of Kafka or message queues is a plus`,
+  },
+  {
+    title: "Node.js Backend Engineer – APIs & Integrations",
+    content: `We need a Node.js Backend Engineer to build reliable, high-throughput APIs and third-party integrations for our SaaS platform.
+
+Responsibilities:
+- Build scalable REST and GraphQL APIs using Node.js and Express or NestJS
+- Integrate third-party services via gRPC and webhooks
+- Design efficient data models in MongoDB and PostgreSQL
+- Own the performance and reliability of backend services in production
+- Collaborate with frontend and mobile engineers to define API contracts
+
+Requirements:
+- 2–4 years of Node.js backend development experience
+- Strong understanding of REST API design and GraphQL schema design
+- Experience with both SQL (PostgreSQL, MySQL) and NoSQL (MongoDB, Redis) databases
+- Familiarity with gRPC and event-driven patterns
+- Comfortable with Docker and CI/CD pipelines (GitHub Actions or Jenkins)
+- Bonus: experience with Kafka or message queue systems`,
+  },
+  {
+    title: "Cloud & Infrastructure Engineer – AWS / GCP",
+    content: `We are growing our platform engineering team and need a Cloud Engineer to own our multi-cloud infrastructure across AWS and GCP.
+
+Responsibilities:
+- Provision and manage cloud infrastructure on AWS and GCP using Terraform and Helm
+- Administer Kubernetes clusters and optimise resource utilisation
+- Set up and improve CI/CD pipelines using GitHub Actions or Jenkins
+- Monitor infrastructure health using Grafana, Prometheus, and cloud-native tooling
+- Work closely with the security team to enforce IAM policies and compliance standards
+
+Requirements:
+- 3+ years of experience in cloud infrastructure or DevOps
+- Hands-on with AWS services (EC2, RDS, S3, Lambda, ECS) and/or GCP (Cloud Run, GKE)
+- Strong Terraform skills for infrastructure as code
+- Kubernetes and Helm administration experience
+- Familiarity with Azure is a bonus
+- Scripting skills in Python or Bash
+- Comfortable with Docker, container registries, and image optimisation`,
+  },
+  {
+    title: "Data Platform Engineer – Spark & Airflow",
+    content: `We are building the data foundation for a fast-growing analytics platform and need a Data Platform Engineer to own our batch and streaming pipelines.
+
+Responsibilities:
+- Build and maintain ETL and ELT pipelines using Apache Spark and Apache Beam
+- Orchestrate workflows with Apache Airflow and ensure pipeline reliability
+- Work with Hadoop HDFS and cloud storage for large-scale data processing
+- Integrate with Kafka streams for real-time data ingestion
+- Collaborate with analytics and ML teams to surface clean, well-modelled datasets
+
+Requirements:
+- 3+ years of data engineering experience
+- Proficiency in Python and PySpark; Scala Spark experience is a plus
+- Hands-on experience with Airflow for workflow orchestration
+- Experience with ETL patterns, data warehousing, and SQL optimisation
+- Familiarity with Hadoop ecosystem (HDFS, Hive, HBase)
+- Experience with Apache Beam or Dataflow is a strong plus
+- Working knowledge of cloud platforms: AWS, GCP, or Azure`,
+  },
+  {
+    title: "Full Stack Engineer – Node.js & React",
+    content: `We are looking for a Full Stack Engineer who can move seamlessly across frontend and backend to ship complete product features.
+
+Responsibilities:
+- Build React and TypeScript frontends with Tailwind CSS, delivering responsive and performant UIs
+- Develop backend APIs in Node.js with REST and GraphQL interfaces
+- Manage state using Redux or Zustand; integrate with real-time features via WebSockets
+- Write unit and integration tests using Jest and React Testing Library
+- Participate in sprint planning, feature scoping, and technical design discussions
+
+Requirements:
+- 2–5 years of full-stack development experience
+- Strong proficiency in React, TypeScript, and Tailwind CSS
+- Backend experience in Node.js (Express or NestJS)
+- Working knowledge of SQL databases (PostgreSQL or MySQL)
+- Comfortable with GraphQL, REST API design, and JWT-based authentication
+- Familiarity with Docker, Git workflows, and basic CI/CD
+- Bonus: Next.js experience and familiarity with gRPC`,
+  },
+  {
+    title: "QA Engineer – Test Automation",
+    content: `We are investing in quality and need a QA Engineer to build and maintain our automated testing infrastructure across web and API layers.
+
+Responsibilities:
+- Design and implement end-to-end test suites using Playwright or Selenium
+- Write API test automation using Postman/Newman or Pytest
+- Build regression and smoke test pipelines integrated with CI/CD (GitHub Actions or Jenkins)
+- Collaborate with developers during sprint to define test cases for new features
+- Track, document, and triage defects; ensure test coverage meets release standards
+
+Requirements:
+- 2–4 years of QA or test automation experience
+- Hands-on with Playwright, Selenium, or Cypress for UI test automation
+- Experience with API testing tools (Postman, RestAssured, or Pytest)
+- Familiarity with Java or Python for writing test scripts
+- Understanding of CI/CD pipelines and how testing integrates into the delivery process
+- Experience with Jira or similar tools for defect tracking
+- Knowledge of performance testing (JMeter, k6) is a bonus`,
+  },
 ];
 
 export async function GET() {
@@ -163,8 +285,10 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    if (jobs.length === 0) {
-      await db.jobDescription.createMany({ data: SEED_JDS });
+    const existingTitles = new Set(jobs.map((j) => j.title));
+    const missing = SEED_JDS.filter((j) => !existingTitles.has(j.title));
+    if (missing.length > 0) {
+      await db.jobDescription.createMany({ data: missing });
       jobs = await db.jobDescription.findMany({ orderBy: { createdAt: "desc" } });
     }
 
