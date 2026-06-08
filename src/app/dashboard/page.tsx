@@ -72,6 +72,7 @@ function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [topN, setTopN] = useState<number | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setSearchQuery(searchInput), 300);
@@ -226,13 +227,15 @@ function DashboardContent() {
 
   const allSkills = [...new Set(candidates.flatMap((c) => c.skills.map(s => s.name)))].sort();
 
+  const capped = topN !== null ? displayed.slice(0, topN) : displayed;
+
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(displayed.length / PAGE_SIZE);
-  const paginated = displayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(capped.length / PAGE_SIZE);
+  const paginated = capped.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Reset to page 1 whenever the filtered set changes
-  useEffect(() => { setPage(1); }, [searchQuery, filters, showHiddenGemsOnly, matchResults.length]);
+  useEffect(() => { setPage(1); }, [searchQuery, filters, showHiddenGemsOnly, matchResults.length, topN]);
 
   const exportCSV = () => {
     const hasMatch = matchResults.length > 0;
@@ -245,7 +248,7 @@ function DashboardContent() {
       const s = String(v ?? "").replace(/"/g, '""');
       return `"${s}"`;
     };
-    const rows = displayed.map((c) => {
+    const rows = capped.map((c) => {
       const m = matchResults.find((r) => r.candidateId === c.id);
       return [
         escape(c.name),
@@ -565,11 +568,23 @@ function DashboardContent() {
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-sm text-muted-foreground">
             {totalPages > 1
-              ? <><span className="text-foreground font-medium">{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, displayed.length)}</span> of <span className="text-foreground font-medium">{displayed.length}</span></>
-              : <span className="text-foreground font-medium">{displayed.length}</span>
+              ? <><span className="text-foreground font-medium">{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, capped.length)}</span> of <span className="text-foreground font-medium">{capped.length}</span></>
+              : <span className="text-foreground font-medium">{capped.length}</span>
             } candidates
           </span>
-          {displayed.length > 0 && (
+          <select
+            value={topN ?? ""}
+            onChange={(e) => setTopN(e.target.value === "" ? null : Number(e.target.value))}
+            className="text-xs bg-secondary border border-border rounded-lg px-2 py-1.5 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+            title="Limit results"
+          >
+            <option value="">All</option>
+            <option value="10">Top 10</option>
+            <option value="25">Top 25</option>
+            <option value="50">Top 50</option>
+            <option value="100">Top 100</option>
+          </select>
+          {capped.length > 0 && (
             <button
               onClick={exportCSV}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 px-3 py-1.5 rounded-lg transition-colors"
