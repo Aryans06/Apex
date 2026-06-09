@@ -92,6 +92,11 @@ IMPORTANT: Keep ALL text fields SHORT and CONCISE.
 - "skills": Max 10 most relevant skills with proficiency estimate.
 - "redFlags": Array of strings, each under 10 words. Max 4 flags. Empty array if clean.
 
+CRITICAL DATE RULE: Use null for ANY date or duration field NOT explicitly written in the resume.
+- Never infer, guess, or estimate startDate, endDate, startYear, endYear, or durationMonths.
+- For "duration", use only the exact text from the resume (e.g. "3 years", "2021–2023"). If no duration text exists, use null.
+- For "yearsOfExperience", use only a figure explicitly stated or trivially summed from stated durations; otherwise use null.
+
 Look for: Growth Velocity, Skill Adjacency, Trajectory (self-taught vs pedigree), Indian context (Tier-1/2/3).
 For institution tier: tier_1 = IITs, IIMs, NITs top-tier; tier_2 = state engineering colleges, BITS; tier_3 = private colleges; tier_4 = unknown/local.
 
@@ -108,10 +113,10 @@ Return ONLY this JSON structure, no markdown:
     {"name": "Python", "proficiency": "advanced", "endorsements": 0, "duration_months": 36}
   ],
   "experience": [
-    {"role": "Title", "company": "Company", "duration": "2020-2023", "startDate": "2020-06-01", "endDate": "2023-01-01", "durationMonths": 31, "isCurrent": false, "industry": "FinTech", "description": "Brief desc", "bullets": ["Short achievement"]}
+    {"role": "Title", "company": "Company", "duration": "exact text from resume or null", "startDate": null, "endDate": null, "durationMonths": null, "isCurrent": false, "industry": "FinTech", "description": "Brief desc", "bullets": ["Short achievement"]}
   ],
   "education": [
-    {"institution": "University Name", "degree": "B.Tech Computer Science", "fieldOfStudy": "CS", "startYear": 2016, "endYear": 2020, "grade": "8.5 CGPA", "tier": "tier_2"}
+    {"institution": "University Name", "degree": "B.Tech Computer Science", "fieldOfStudy": "CS", "startYear": null, "endYear": null, "grade": "8.5 CGPA", "tier": "tier_2"}
   ],
   "links": {"github": "url or empty", "portfolio": "url or empty"},
   "location": "City, Country",
@@ -122,7 +127,7 @@ Return ONLY this JSON structure, no markdown:
 }
 
 Proficiency scale: beginner | intermediate | advanced | expert
-duration_months: how long they have used this skill (estimate from experience).`;
+duration_months: estimate only from explicitly stated durations; use 0 if unknown.`;
 
     const parts: GeminiPart[] = [];
 

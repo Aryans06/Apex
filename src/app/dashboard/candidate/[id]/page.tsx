@@ -340,9 +340,11 @@ function CandidateProfileContent() {
                   <Link2 className="w-4 h-4" /> {candidate.links.portfolio}
                 </a>
               )}
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <GraduationCap className="w-4 h-4" /> {candidate.education[0]?.degree}, {candidate.education[0]?.institution}
-              </div>
+              {candidate.education[0] && (
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <GraduationCap className="w-4 h-4" /> {candidate.education[0].degree}{candidate.education[0].institution ? `, ${candidate.education[0].institution}` : ""}
+                </div>
+              )}
             </div>
 
             <div className="mt-8 pt-8 border-t border-border flex flex-wrap gap-2">

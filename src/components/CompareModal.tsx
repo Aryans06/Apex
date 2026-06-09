@@ -8,6 +8,7 @@ import { RadarChart } from "@/components/RadarChart";
 import { cn } from "@/lib/utils";
 
 interface CompareModalProps {
+  isOpen: boolean;
   candidates: Candidate[];
   onClose: () => void;
 }
@@ -23,8 +24,8 @@ function ScoreBar({ value, color }: { value: number; color: string }) {
   );
 }
 
-export function CompareModal({ candidates, onClose }: CompareModalProps) {
-  if (candidates.length < 2) return null;
+export function CompareModal({ isOpen, candidates, onClose }: CompareModalProps) {
+  if (!isOpen || candidates.length < 2) return null;
 
   return (
     <AnimatePresence>
@@ -109,7 +110,15 @@ export function CompareModal({ candidates, onClose }: CompareModalProps) {
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Education</p>
                       <div className="flex items-start gap-2 text-xs text-foreground/80">
                         <GraduationCap className="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
-                        <span>{c.education[0]?.degree}, {c.education[0]?.institution} ({c.education[0]?.endYear})</span>
+                        {c.education[0] ? (
+                          <span>
+                            {c.education[0].degree}
+                            {c.education[0].institution ? `, ${c.education[0].institution}` : ""}
+                            {c.education[0].endYear ? ` (${c.education[0].endYear})` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Not specified</span>
+                        )}
                       </div>
                     </div>
 

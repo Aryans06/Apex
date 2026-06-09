@@ -289,7 +289,7 @@ function DashboardContent() {
       {/* Modals */}
       <ProofOfWorkModal isOpen={modalOpen} onClose={() => setModalOpen(false)} claim={selectedClaim} candidateName={selectedCandidateName} />
       <BulkUploadModal isOpen={bulkUploadOpen} onClose={() => setBulkUploadOpen(false)} onCandidatesAdded={(added) => setCandidates((prev) => [...added, ...prev])} />
-      <CompareModal candidates={candidatesForCompare} onClose={() => { setCompareOpen(false); setSelectedForCompare([]); }} />
+      <CompareModal isOpen={compareOpen} candidates={candidatesForCompare} onClose={() => { setCompareOpen(false); setSelectedForCompare([]); }} />
       <OutreachModal isOpen={outreachOpen} onClose={() => setOutreachOpen(false)} candidate={outreachCandidate} />
 
       {/* Single upload modal */}
