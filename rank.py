@@ -43,12 +43,13 @@ SKILL_GROUPS: dict[str, list[str]] = {
     "rag": [
         "rag", "retrieval augmented", "retrieval-augmented", "llamaindex",
         "llama index", "llama_index", "document retrieval", "knowledge retrieval",
-        "agentic rag",
+        "agentic rag", "langchain",
     ],
     "llm": [
         "llm", "large language model", "gpt", "bert", "transformer",
         "language model", "huggingface", "hugging face", "transformers",
         "llama", "mistral", "gemini", "phi", "anthropic", "openai api",
+        "langchain",
     ],
     "fine_tuning": [
         "fine-tuning", "fine tuning", "finetuning", "lora", "qlora", "peft",
@@ -136,7 +137,10 @@ TIER_SCORE = {
     "unknown": 0.5,
 }
 
-TODAY = date.today()
+# Anchored to the dataset snapshot (latest last_active_date = 2026-05-27) rather
+# than date.today() so the ranker is deterministic when reproduced in the Stage-3
+# sandbox at any later date. Recency and honeypot span checks key off this.
+TODAY = date(2026, 6, 1)
 
 
 # ─── Honeypot Detection ───────────────────────────────────────────────────────
