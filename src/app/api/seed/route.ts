@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mockCandidates } from "@/lib/data";
+import { computeAdjacencyScore } from "@/lib/adjacency";
 
 // Normalizes either dataset format (profile + career_history) or mock format into a common shape
 function normalizeCandidate(c: any) {
@@ -65,13 +66,12 @@ export async function POST(req: Request) {
     await db.candidate.deleteMany();
 
     for (const candidate of dataToSeed) {
-      const skillsJson = Array.isArray(candidate.skills)
-        ? JSON.stringify(
-            candidate.skills[0] && typeof candidate.skills[0] === "object"
-              ? candidate.skills
-              : candidate.skills.map((s: string) => ({ name: s, proficiency: "intermediate", endorsements: 0, duration_months: 0 }))
-          )
-        : JSON.stringify([]);
+      const skillObjs = Array.isArray(candidate.skills)
+        ? (candidate.skills[0] && typeof candidate.skills[0] === "object"
+            ? candidate.skills
+            : candidate.skills.map((s: string) => ({ name: s, proficiency: "intermediate", endorsements: 0, duration_months: 0 })))
+        : [];
+      const skillsJson = JSON.stringify(skillObjs);
 
       const educationArray = Array.isArray(candidate.education)
         ? candidate.education
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
           currentIndustry: candidate.currentIndustry,
           hiddenGemScore: candidate.hiddenGemScore,
           trajectoryNotes: candidate.trajectoryNotes,
-          adjacencyScore: candidate.adjacencyScore,
+          adjacencyScore: computeAdjacencyScore(skillObjs),
           githubUrl: candidate.links?.github || null,
           portfolioUrl: candidate.links?.portfolio || null,
           redrobSignals: candidate.redrobSignals ? JSON.stringify(candidate.redrobSignals) : undefined,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mockCandidates } from "@/lib/data";
+import { computeAdjacencyScore } from "@/lib/adjacency";
 
 function parseSkills(raw: string) {
   try {
@@ -37,7 +38,7 @@ export async function GET() {
             currentIndustry: candidate.currentIndustry,
             hiddenGemScore: candidate.hiddenGemScore,
             trajectoryNotes: candidate.trajectoryNotes,
-            adjacencyScore: candidate.adjacencyScore,
+            adjacencyScore: computeAdjacencyScore(candidate.skills),
             githubUrl: candidate.links?.github,
             portfolioUrl: candidate.links?.portfolio,
             experiences: {
