@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { computeAdjacencyScore } from "@/lib/adjacency";
 
 type GeminiPart =
   | { text: string; inlineData?: never }
@@ -121,7 +122,6 @@ Return ONLY this JSON structure, no markdown:
   "links": {"github": "url or empty", "portfolio": "url or empty"},
   "location": "City, Country",
   "hiddenGemScore": 0-100,
-  "adjacencyScore": 0-100,
   "trajectoryNotes": "Brief 2-sentence explanation",
   "redFlags": ["Flag if any"]
 }
@@ -179,7 +179,7 @@ duration_months: estimate only from explicitly stated durations; use 0 if unknow
         currentIndustry: d.currentIndustry || null,
         hiddenGemScore: d.hiddenGemScore ?? null,
         trajectoryNotes: (d.trajectoryNotes || "").substring(0, 400) || null,
-        adjacencyScore: d.adjacencyScore ?? null,
+        adjacencyScore: computeAdjacencyScore(skills),
         redFlags: JSON.stringify(Array.isArray(d.redFlags) ? d.redFlags.slice(0, 4) : []),
         githubUrl: d.links?.github || null,
         portfolioUrl: d.links?.portfolio || null,
